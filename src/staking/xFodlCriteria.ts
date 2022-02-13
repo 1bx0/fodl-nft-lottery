@@ -23,6 +23,7 @@ import {
   RARI_XFODL_ABI,
   RARI_XFODL_DEPLOYMENT_BLOCK,
   MANTISSA,
+  FODL_DECIMALS,
 } from './constants'
 
 dotenv.config()
@@ -37,20 +38,23 @@ export class XFodlCriteria extends Criteria {
   }
 
   public allocations: NamedAllocations = { xfodl: {} }
+
   private provider: providers.Provider
   private rariXFodl: Contract
   private xFodl: Contract
   private fodlToken: Contract
 
   public async countTickets(snapshotBlock: number) {
-    const xFodlBalance = await this.fodlToken.callStatic.balanceOf(XFODL_ADDRESS, { blockTag: snapshotBlock })
-    const xFodlTotalSupply = await this.xFodl.callStatic.totalSupply({ blockTag: snapshotBlock })
-    const rariXFodlRate = await this.rariXFodl.callStatic.exchangeRateCurrent({ blockTag: snapshotBlock })
+    console.log('countTickets')
+    const [xFodlBalance, xFodlTotalSupply, rariXFodlRate] = await Promise.all([
+      this.fodlToken.callStatic.balanceOf(XFODL_ADDRESS, { blockTag: snapshotBlock }),
+      this.xFodl.callStatic.totalSupply({ blockTag: snapshotBlock }),
+      this.rariXFodl.callStatic.exchangeRateCurrent({ blockTag: snapshotBlock }),
+    ])
+
     const convertRariToXFodl = (amount: BigNumber) => amount.mul(rariXFodlRate).div(MANTISSA)
     const convertXFodlToTickets = (amount: BigNumber) =>
-      amount.mul(xFodlBalance).div(xFodlTotalSupply).div(MANTISSA).div(1000)
-
-    console.log('countTickets')
+      amount.mul(xFodlBalance).div(xFodlTotalSupply).div(BigNumber.from(10).pow(FODL_DECIMALS)).div(1000)
 
     const [xFodlHolders, rariXFodlHolders] = await Promise.all([
       getHistoricHolders(this.xFodl, XFODL_DEPLOYMENT_BLOCK, snapshotBlock),
@@ -71,15 +75,12 @@ export class XFodlCriteria extends Criteria {
 
     const balances = sumAllocations(xFodlBalances, convertAllocation(rariXFodlBalances, convertRariToXFodl))
 
-    const minBalances = this.getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
+    const minBalancesDuringLastDay = this.getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
 
-    this.allocations.xFodl = convertAllocation(minBalances, convertXFodlToTickets)
+    this.allocations.xFodl = convertAllocation(minBalancesDuringLastDay, convertXFodlToTickets)
   }
 
-  private getMinimumBalancesDuringLastDay(balances: Allocation, unsertedTransfers: Transfer[]): Allocation {
-    const transfers = unsertedTransfers.sort((a, b) =>
-      a.blockNumber != b.blockNumber ? b.blockNumber - a.blockNumber : b.logIndex - a.logIndex
-    )
+  private getMinimumBalancesDuringLastDay(balances: Allocation, unsortedTransfers: Transfer[]): Allocation {
     let minimumBalances = { ...balances }
     const updateMinBalances = (balances: Allocation) => {
       Object.entries(balances).forEach(([address, balance]) => {
@@ -87,6 +88,9 @@ export class XFodlCriteria extends Criteria {
       })
     }
 
+    const transfers = unsortedTransfers.sort((a, b) =>
+      a.blockNumber != b.blockNumber ? b.blockNumber - a.blockNumber : b.logIndex - a.logIndex
+    )
     for (let i = 0; i < transfers.length; ) {
       const blockNumber = transfers[i].blockNumber
       while (i < transfers.length && blockNumber == transfers[i].blockNumber) {
