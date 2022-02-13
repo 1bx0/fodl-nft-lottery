@@ -1,49 +1,36 @@
 import dotenv from 'dotenv'
 import { Criteria } from './criteria'
-import {
-  LP_ETH_FODL_ADDRESS,
-  LP_ETH_FODL_DEPLOYMENT_BLOCK,
-  LP_ETH_FODL_STAKING_ADDRESS,
-  LP_USDC_FODL_ADDRESS,
-  LP_USDC_FODL_DEPLOYMENT_BLOCK,
-  LP_USDC_FODL_STAKING_ADDRESS,
-} from './staking/constants'
-import { LPCriteria } from './staking/lpCriteria'
-import { XFodlCriteria } from './staking/xFodlCriteria'
-import { TradingCriteria } from './trading/tradingCriteria'
+import { EthLpCriteria } from './staking/sushiLpCriteria'
 import { filterZeroes, sumAllocations } from './utils'
 
 dotenv.config()
 
-const snapshotBlock = Number(process.env.SNAPSHOT_BLOCK)
+const ethereumSnapshotBlock = Number(process.env.ETHERUM_SNAPSHOT_BLOCK)
+const maticSnapshotBlock = Number(process.env.MATIC_SNAPSHOT_BLOCK)
 
 const rules: Criteria[] = [
-  new LPCriteria(
-    LP_ETH_FODL_ADDRESS,
-    LP_ETH_FODL_DEPLOYMENT_BLOCK,
-    LP_ETH_FODL_STAKING_ADDRESS,
-    process.env.RPC_PROVIDER
-  ),
-  new LPCriteria(
-    LP_USDC_FODL_ADDRESS,
-    LP_USDC_FODL_DEPLOYMENT_BLOCK,
-    LP_USDC_FODL_STAKING_ADDRESS,
-    process.env.RPC_PROVIDER
-  ),
-  new TradingCriteria(),
-  new XFodlCriteria(),
+  // new TradingCriteria(),
+  // new XFodlCriteria(),
+  new EthLpCriteria(),
+  // new UsdcLpCriteria(),
+  // new MaticLpCriteria(),
 ]
 
 async function run() {
-  await Promise.all(rules.map((rule) => rule.countTickets(snapshotBlock)))
+  await Promise.all(rules.map((rule) => rule.countTickets(ethereumSnapshotBlock)))
 
   const allocationWithZeroes = sumAllocations(...rules.flatMap((rule) => Object.values(rule.allocations)))
 
   const allocation = filterZeroes(allocationWithZeroes)
 
+  console.log(`owner | total | trading | closed-trade | eth-lp | usdc-lp | matic-lp`)
   console.log(
     Object.entries(allocation)
-      .map(([owner, value]) => `${owner} | ${value.toString()}`)
+      .map(
+        ([owner, value]) => `${owner} | ${value.toString()}`
+        // `${rules[0].allocations.trading} | ${rules[0].allocations.closedTrade} | ` +
+        // `${rules[1].allocations.xFodl} `
+      )
       .join('\n')
   )
   // do lottery

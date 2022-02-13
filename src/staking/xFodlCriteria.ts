@@ -8,6 +8,7 @@ import {
   getBalances,
   getHistoricHolders,
   getHistoricTransfers,
+  getMinimumBalancesDuringLastDay,
   NamedAllocations,
   sumAllocations,
   Transfer,
@@ -31,13 +32,13 @@ dotenv.config()
 export class XFodlCriteria extends Criteria {
   constructor() {
     super()
-    this.provider = new ethers.providers.JsonRpcProvider(process.env.RPC_PROVIDER)
+    this.provider = new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.rariXFodl = new Contract(RARI_XFODL_ADDRESS, RARI_XFODL_ABI, this.provider)
     this.xFodl = new Contract(XFODL_ADDRESS, XFODL_ABI, this.provider)
     this.fodlToken = new Contract(FODL_ADDRESS, FODL_ABI, this.provider)
   }
 
-  public allocations: NamedAllocations = { xfodl: {} }
+  public allocations: NamedAllocations = { xFodl: {} }
 
   private provider: providers.Provider
   private rariXFodl: Contract
@@ -75,32 +76,8 @@ export class XFodlCriteria extends Criteria {
 
     const balances = sumAllocations(xFodlBalances, convertAllocation(rariXFodlBalances, convertRariToXFodl))
 
-    const minBalancesDuringLastDay = this.getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
+    const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
 
     this.allocations.xFodl = convertAllocation(minBalancesDuringLastDay, convertXFodlToTickets)
-  }
-
-  private getMinimumBalancesDuringLastDay(balances: Allocation, unsortedTransfers: Transfer[]): Allocation {
-    let minimumBalances = { ...balances }
-    const updateMinBalances = (balances: Allocation) => {
-      Object.entries(balances).forEach(([address, balance]) => {
-        if (minimumBalances[address].gt(balance)) minimumBalances[address] = balance
-      })
-    }
-
-    const transfers = unsortedTransfers.sort((a, b) =>
-      a.blockNumber != b.blockNumber ? b.blockNumber - a.blockNumber : b.logIndex - a.logIndex
-    )
-    for (let i = 0; i < transfers.length; ) {
-      const blockNumber = transfers[i].blockNumber
-      while (i < transfers.length && blockNumber == transfers[i].blockNumber) {
-        const t = transfers[i]
-        balances[t.from] = balances[t.from].add(t.amount)
-        balances[t.to] = balances[t.to].sub(t.amount)
-        i++
-      }
-      updateMinBalances(balances)
-    }
-    return minimumBalances
   }
 }

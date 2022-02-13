@@ -31,7 +31,7 @@ dotenv.config()
 export class TradingCriteria extends Criteria {
   constructor() {
     super()
-    this.provider = new providers.JsonRpcProvider(process.env.RPC_PROVIDER)
+    this.provider = new providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.priceFeed = new ethers.Contract(CHAIN_LINK_FEED_ADDRESS, CHAIN_LINK_FEED_ABI, this.provider)
     this.registry = new ethers.Contract(FODL_REGISTRY_ADDRESS, FODL_REGISTRY_ABI, this.provider)
   }
