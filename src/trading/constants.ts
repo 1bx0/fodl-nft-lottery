@@ -1097,7 +1097,6 @@ export const ERC20_ABI = [
   },
 ]
 
-// FodlRegistry
 export const DEPLOY_BLOCK_NUMBER = 13373735
 export const EVENTS_CHUNK_SIZE = 50000
 

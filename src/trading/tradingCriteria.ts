@@ -24,7 +24,7 @@ import {
   WETH_ADDRESS,
 } from './constants'
 import { Criteria } from '../criteria'
-import { NamedAllocations } from '../utils'
+import { NamedAllocations, parseAddress } from '../utils'
 
 dotenv.config()
 
@@ -38,9 +38,9 @@ export class TradingCriteria extends Criteria {
 
   public allocations: NamedAllocations = { trading: {}, closedTrade: {} }
 
-  private priceFeed
-  private registry
-  private provider
+  private priceFeed: Contract
+  private registry: Contract
+  private provider: providers.Provider
 
   private ownersCache: { [ownerAtBlock: string]: string } = {}
   private pricesCache: { [priceAtBlock: string]: BigNumber } = {}
@@ -88,20 +88,20 @@ export class TradingCriteria extends Criteria {
     return token.toLowerCase() != COMP_ADDRESS.toLowerCase() && token.toLowerCase() != AAVE_ADDRESS.toLowerCase()
   }
 
-  public async countTickets(currentBlock: number) {
+  public async countTickets(snapshotBlock: number) {
     console.log('Getting all transfers to tax wallet...')
 
     console.log(
       `Splitting in ${Math.ceil(
-        (currentBlock - DEPLOY_BLOCK_NUMBER) / EVENTS_CHUNK_SIZE
+        (snapshotBlock - DEPLOY_BLOCK_NUMBER) / EVENTS_CHUNK_SIZE
       )} chunks of size ${EVENTS_CHUNK_SIZE}}`
     )
 
     const tag = 'count trading tickets for each dollar contributed to tax wallet'
     console.time(tag)
-    for (let fromBlock = DEPLOY_BLOCK_NUMBER; fromBlock <= currentBlock; fromBlock += EVENTS_CHUNK_SIZE) {
+    for (let fromBlock = DEPLOY_BLOCK_NUMBER; fromBlock <= snapshotBlock; fromBlock += EVENTS_CHUNK_SIZE) {
       this.clearCaches()
-      await this.processLogs(fromBlock, Math.min(fromBlock + EVENTS_CHUNK_SIZE, currentBlock))
+      await this.processLogs(fromBlock, Math.min(fromBlock + EVENTS_CHUNK_SIZE, snapshotBlock))
     }
     console.timeEnd(tag)
   }
@@ -136,7 +136,7 @@ export class TradingCriteria extends Criteria {
     try {
       const blockNumber = log.blockNumber
       const token = this.getToken(log.address)
-      const from = ethers.utils.hexDataSlice(log.topics[1], 12)
+      const from = parseAddress(log.topics[1])
       const tokenAmount = BigNumber.from(log.data)
 
       const [owner, price, decimals] = await Promise.all([
