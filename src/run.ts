@@ -1,4 +1,5 @@
 import dotenv from 'dotenv'
+import { BigNumber, ethers } from 'ethers'
 import { Criteria } from './criteria'
 import { MaticLpCriteria } from './staking/maticLpCriteria'
 import { EthLpCriteria, UsdcLpCriteria } from './staking/sushiLpCriteria'
@@ -40,7 +41,12 @@ async function run() {
       )
       .join('\n')
   )
-  // do lottery
+
+  if (Number(process.env.RANDOM_LOTTERY_SEED) != 0) {
+    const sortedKeys = Object.keys(allocation).sort()
+    const totalTickets = Object.values(allocation).reduce((acc, v) => acc.add(v), BigNumber.from(0))
+    // pick random value between 0 and totalTickets - 1
+  }
 }
 
 run().catch(console.error)
