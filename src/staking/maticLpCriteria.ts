@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import { Criteria } from '../criteria'
-import { ERC20_ABI } from '../trading/constants'
+import { ERC20_ABI } from '../constants'
 import {
   convertAllocation,
   getBalances,
@@ -17,7 +17,7 @@ import {
   LP_FODL_MATIC_DEPLOYMENT_BLOCK,
   MATIC_LP_DECIMALS,
   SUSHI_LP_ABI,
-} from './constants'
+} from '../constants'
 
 dotenv.config()
 

@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { BigNumber } from 'ethers'
+import { BigNumber, constants } from 'ethers'
 
 dotenv.config()
 
@@ -1401,7 +1401,6 @@ export const SUSHI_LP_ABI = [
     type: 'function',
   },
 ]
-
 export const LP_USDC_FODL_STAKING_ADDRESS = '0xF958a023d5B1e28c32373547bDdE001cAD17E9B4'
 export const LP_ETH_FODL_STAKING_ADDRESS = '0xA7453338ccc29E4541e6C6B0546A99Cc6b9EB09a'
 export const LP_STAKING_ABI = [
@@ -1937,7 +1936,6 @@ export const LP_STAKING_ABI = [
     type: 'function',
   },
 ]
-
 export const XFODL_DEPLOYMENT_BLOCK = 13684767
 export const XFODL_ADDRESS = '0x7e05540A61b531793742fde0514e6c136b5fbAfE'
 export const XFODL_ABI = [
@@ -2112,7 +2110,6 @@ export const XFODL_ABI = [
     type: 'function',
   },
 ]
-
 export const RARI_XFODL_DEPLOYMENT_BLOCK = 13678684
 export const RARI_XFODL_ADDRESS = '0xF0A6b4F7F26F6188d821CFBc69A31fb0bbB9702F'
 export const RARI_XFODL_ABI = [
@@ -2854,7 +2851,6 @@ export const RARI_XFODL_ABI = [
     type: 'function',
   },
 ]
-
 export const FODL_ADDRESS = '0x4c2e59d098df7b6cbae0848d66de2f8a4889b9c3'
 export const FODL_DECIMALS = 18
 export const FODL_ABI = [
@@ -3025,3 +3021,10 @@ export const XFODL_PER_TICKET = 1000
 export const BLOCKS_PER_DAY_ETHEREUM = (24 * 60 * 60) / 15 // every 15 seconds
 export const BLOCKS_PER_DAY_MATIC = (24 * 60 * 60) / 2 //every 2 seconds
 export const EVENTS_CHUNK_SIZE = 50000
+
+export const EXCLUDE_LIST = [
+  constants.AddressZero,
+  LP_USDC_FODL_STAKING_ADDRESS,
+  LP_ETH_FODL_STAKING_ADDRESS,
+  RARI_XFODL_ADDRESS,
+]

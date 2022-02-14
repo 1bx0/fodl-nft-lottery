@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import { BigNumber, ethers } from 'ethers'
+import { EXCLUDE_LIST } from './constants'
 import { Criteria } from './criteria'
 import { MaticLpCriteria } from './staking/maticLpCriteria'
 import { EthLpCriteria, UsdcLpCriteria } from './staking/sushiLpCriteria'
@@ -13,11 +14,11 @@ const ethereumSnapshotBlock = Number(process.env.ETHEREUM_SNAPSHOT_BLOCK)
 const maticSnapshotBlock = Number(process.env.MATIC_SNAPSHOT_BLOCK)
 
 const rules: Criteria[] = [
-  // new TradingCriteria(ethereumSnapshotBlock),
+  new TradingCriteria(ethereumSnapshotBlock),
   new XFodlCriteria(ethereumSnapshotBlock),
-  // new EthLpCriteria(ethereumSnapshotBlock),
-  // new UsdcLpCriteria(ethereumSnapshotBlock),
-  // new MaticLpCriteria(maticSnapshotBlock),
+  new EthLpCriteria(ethereumSnapshotBlock),
+  new UsdcLpCriteria(ethereumSnapshotBlock),
+  new MaticLpCriteria(maticSnapshotBlock),
 ]
 
 async function run() {
@@ -32,12 +33,13 @@ async function run() {
   console.log(
     Object.entries(allocation)
       .map(
-        ([owner, value]) => `${owner} | ${value.toString()} |` //+
-        // `${rules[0].allocations.trading[owner] || 0} | ${rules[0].allocations.closedTrade[owner] || 0} | ` +
-        // `${rules[1].allocations.xFodl[owner] || 0} | ` +
-        // `${rules[2].allocations.lp[owner] || 0} | ` +
-        // `${rules[3].allocations.lp[owner] || 0} | ` +
-        // `${rules[4].allocations.maticLp[owner] || 0}`
+        ([owner, value]) =>
+          `${owner} | ${value.toString()} |` +
+          `${rules[0].allocations.trading[owner] || 0} | ${rules[0].allocations.closedTrade[owner] || 0} | ` +
+          `${rules[1].allocations.xFodl[owner] || 0} | ` +
+          `${rules[2].allocations.lp[owner] || 0} | ` +
+          `${rules[3].allocations.lp[owner] || 0} | ` +
+          `${rules[4].allocations.maticLp[owner] || 0}`
       )
       .join('\n')
   )

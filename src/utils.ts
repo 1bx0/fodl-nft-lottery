@@ -1,5 +1,5 @@
 import { BigNumber, Contract, ethers } from 'ethers'
-import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './trading/constants'
+import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
 
 export type Allocation = { [key: string]: BigNumber }
 export type NamedAllocations = { [reason: string]: Allocation }
@@ -99,13 +99,8 @@ export const getMinimumBalancesDuringLastDay = (balances: Allocation, unsortedTr
     const blockNumber = transfers[i].blockNumber
     while (i < transfers.length && blockNumber == transfers[i].blockNumber) {
       const t = transfers[i]
-      const prev = balances[t.to]
       balances[t.from] = balances[t.from].add(t.amount)
       balances[t.to] = balances[t.to].sub(t.amount)
-
-      if (balances[t.to].isNegative()) console.log(i, t, prev)
-      if (balances[t.from].isNegative()) console.log(t)
-
       i++
     }
     updateMinBalances(balances)
