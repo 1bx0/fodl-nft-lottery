@@ -9,7 +9,7 @@ import {
   CLOSED_TRADE_BONUS,
   CLOSED_TRADE_MIN_CONTRIBUTION,
   COMP_ADDRESS,
-  DEPLOY_BLOCK_NUMBER,
+  REGISTRY_DEPLOYMENT_BLOCK,
   ERC20_ABI,
   ETH_ADDRESS,
   EVENTS_CHUNK_SIZE,
@@ -22,7 +22,7 @@ import {
   USD_DECIMALS,
   WBTC_ADDRESS,
   WETH_ADDRESS,
-} from './constants'
+} from '../constants'
 import { Criteria } from '../criteria'
 import { NamedAllocations, parseAddress } from '../utils'
 
@@ -97,14 +97,14 @@ export class TradingCriteria extends Criteria {
   public async countTickets() {
     console.log('Trading Criteria...')
 
-    for (let fromBlock = DEPLOY_BLOCK_NUMBER; fromBlock <= this.snapshotBlock; fromBlock += EVENTS_CHUNK_SIZE) {
+    for (let fromBlock = REGISTRY_DEPLOYMENT_BLOCK; fromBlock <= this.snapshotBlock; fromBlock += EVENTS_CHUNK_SIZE) {
       this.clearCaches()
       await this.processLogs(fromBlock, Math.min(fromBlock + EVENTS_CHUNK_SIZE, this.snapshotBlock))
     }
   }
 
   private async processLogs(fromBlock: number, toBlock: number) {
-    const tag = `chunk ${Math.ceil((fromBlock - DEPLOY_BLOCK_NUMBER) / EVENTS_CHUNK_SIZE)}`
+    const tag = `chunk ${Math.ceil((fromBlock - REGISTRY_DEPLOYMENT_BLOCK) / EVENTS_CHUNK_SIZE)}`
     console.log(`${tag} from block: ${fromBlock} to block: ${toBlock}`)
 
     console.time(tag)

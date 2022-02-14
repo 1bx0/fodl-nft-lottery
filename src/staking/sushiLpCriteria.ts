@@ -5,11 +5,12 @@ import {
   convertAllocation,
   getBalances,
   getHistoricHolders,
-  getHistoricStakingTransfers,
   getHistoricTransfers,
   getMinimumBalancesDuringLastDay,
   NamedAllocations,
+  parseAddress,
   sumAllocations,
+  Transfer,
 } from '../utils'
 import {
   BLOCKS_PER_DAY_ETHEREUM,
@@ -24,7 +25,7 @@ import {
   LP_USDC_FODL_STAKING_ADDRESS,
   SUSHI_LP_ABI,
   SUSHI_LP_DECIMALS,
-} from './constants'
+} from '../constants'
 
 dotenv.config()
 
@@ -63,7 +64,11 @@ class SushiLpCriteria extends Criteria {
       getBalances(this.lp, lpHolders, this.snapshotBlock),
       getBalances(this.lpStaking, lpHolders, this.snapshotBlock),
       getHistoricTransfers(this.lp, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
-      getHistoricStakingTransfers(this.lpStaking, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
+      this.getHistoricStakingTransfers(
+        this.lpStaking,
+        this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM,
+        this.snapshotBlock
+      ),
     ])
 
     const balances = sumAllocations(lpBalances, lpStakingBalances)
@@ -73,6 +78,35 @@ class SushiLpCriteria extends Criteria {
     const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
 
     this.allocations.lp = convertAllocation(minBalancesDuringLastDay, convertLpToTickets)
+  }
+
+  private async getHistoricStakingTransfers(token: Contract, fromBlock: number, toBlock: number): Promise<Transfer[]> {
+    const staking = new ethers.Contract(token.address, LP_STAKING_ABI, token.provider)
+
+    const tag = `${Math.random()}-stakingEvents`
+    console.time(tag)
+    const [stakeLogs, withdrawLogs] = await Promise.all([
+      staking.queryFilter(staking.filters.Staked(), fromBlock, toBlock),
+      staking.queryFilter(staking.filters.Withdrawn(), fromBlock, toBlock),
+    ])
+    console.timeEnd(tag)
+
+    return [
+      ...stakeLogs.map((log) => ({
+        blockNumber: log.blockNumber,
+        logIndex: log.logIndex,
+        from: ethers.constants.AddressZero,
+        to: parseAddress(log.topics[1]),
+        amount: BigNumber.from(log.data),
+      })),
+      ...withdrawLogs.map((log) => ({
+        blockNumber: log.blockNumber,
+        logIndex: log.logIndex,
+        from: parseAddress(log.topics[1]),
+        to: ethers.constants.AddressZero,
+        amount: BigNumber.from(log.data),
+      })),
+    ]
   }
 }
 

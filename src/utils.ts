@@ -1,5 +1,4 @@
-import { BigNumber, Contract, ethers, EventFilter } from 'ethers'
-import { LP_STAKING_ABI } from './staking/constants'
+import { BigNumber, Contract, ethers } from 'ethers'
 import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './trading/constants'
 
 export type Allocation = { [key: string]: BigNumber }
@@ -15,8 +14,8 @@ export type Transfer = {
 export const convertAllocation = (input: Allocation, applyFn: (value: BigNumber) => BigNumber) =>
   Object.fromEntries(Object.entries(input).map(([key, val]) => [key, applyFn(val)]))
 
-export const convertTransfers = (ts: Transfer[], applyFn: (value: BigNumber) => BigNumber) =>
-  ts.map((t) => ({ ...t, amount: applyFn(t.amount) }))
+export const convertTransfers = async (ts: Transfer[], applyFn: (transfer: Transfer) => Promise<BigNumber>) =>
+  await Promise.all(ts.map(async (t) => ({ ...t, amountOld: t.amount, amount: await applyFn(t) })))
 
 export const sumAllocations = (...allocations: Allocation[]): Allocation => {
   const result: Allocation = {}
@@ -28,8 +27,12 @@ export const sumAllocations = (...allocations: Allocation[]): Allocation => {
   return result
 }
 
-export const filterZeroes = (allocation: Allocation): Allocation => {
-  return Object.fromEntries(Object.entries(allocation).filter(([_, value]) => !value.isZero()))
+export const filterZeroes = (allocation: Allocation): Allocation =>
+  Object.fromEntries(Object.entries(allocation).filter(([_, value]) => !value.isZero()))
+
+export const exclude = (allocation: Allocation, list: string[]) => {
+  list.forEach((element) => (allocation[element] = BigNumber.from(0)))
+  return allocation
 }
 
 export const parseAddress = (paddedAddress: string) => ethers.utils.hexDataSlice(paddedAddress, 12)
@@ -53,39 +56,6 @@ export const getHistoricTransfers = async (
     to: parseAddress(log.topics[2]),
     amount: BigNumber.from(log.data),
   }))
-}
-
-export const getHistoricStakingTransfers = async (
-  token: Contract,
-  fromBlock: number,
-  toBlock: number
-): Promise<Transfer[]> => {
-  const staking = new ethers.Contract(token.address, LP_STAKING_ABI, token.provider)
-
-  const tag = `${Math.random()}-stakingEvents`
-  console.time(tag)
-  const [stakeLogs, withdrawLogs] = await Promise.all([
-    staking.queryFilter(staking.filters.Staked(), fromBlock, toBlock),
-    staking.queryFilter(staking.filters.Withdrawn(), fromBlock, toBlock),
-  ])
-  console.timeEnd(tag)
-
-  return [
-    ...stakeLogs.map((log) => ({
-      blockNumber: log.blockNumber,
-      logIndex: log.logIndex,
-      from: ethers.constants.AddressZero,
-      to: parseAddress(log.topics[1]),
-      amount: BigNumber.from(log.data),
-    })),
-    ...withdrawLogs.map((log) => ({
-      blockNumber: log.blockNumber,
-      logIndex: log.logIndex,
-      from: parseAddress(log.topics[1]),
-      to: ethers.constants.AddressZero,
-      amount: BigNumber.from(log.data),
-    })),
-  ]
 }
 
 export const getHistoricHolders = async (token: Contract, fromBlock: number, toBlock: number): Promise<Set<string>> => {
@@ -129,8 +99,13 @@ export const getMinimumBalancesDuringLastDay = (balances: Allocation, unsortedTr
     const blockNumber = transfers[i].blockNumber
     while (i < transfers.length && blockNumber == transfers[i].blockNumber) {
       const t = transfers[i]
+      const prev = balances[t.to]
       balances[t.from] = balances[t.from].add(t.amount)
       balances[t.to] = balances[t.to].sub(t.amount)
+
+      if (balances[t.to].isNegative()) console.log(i, t, prev)
+      if (balances[t.from].isNegative()) console.log(t)
+
       i++
     }
     updateMinBalances(balances)
