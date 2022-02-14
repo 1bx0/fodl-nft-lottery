@@ -1,7 +1,6 @@
 import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import {
-  BLOCKS_PER_DAY_ETHEREUM,
   FODL_ABI,
   FODL_ADDRESS,
   FODL_DECIMALS,
@@ -29,8 +28,8 @@ import {
 dotenv.config()
 
 export class XFodlCriteria extends Criteria {
-  constructor(snapshotBlock: number) {
-    super(snapshotBlock)
+  constructor(snapshotBlock: number, ticketWindowStartBlock: number) {
+    super(snapshotBlock, ticketWindowStartBlock)
     this.provider = new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.rariXFodl = new Contract(RARI_XFODL_ADDRESS, RARI_XFODL_ABI, this.provider)
     this.xFodl = new Contract(XFODL_ADDRESS, XFODL_ABI, this.provider)
@@ -64,9 +63,9 @@ export class XFodlCriteria extends Criteria {
 
     const [xFodlBalances, lastDayXFodlTransfers, rariXFodlBalances, lastDayRariXFodlTransfers] = await Promise.all([
       getBalances(this.xFodl, xFodlHolders, this.snapshotBlock),
-      getHistoricTransfers(this.xFodl, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
+      getHistoricTransfers(this.xFodl, this.ticketWindowStartBlock, this.snapshotBlock),
       getBalances(this.rariXFodl, rariXFodlHolders, this.snapshotBlock),
-      getHistoricTransfers(this.rariXFodl, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
+      getHistoricTransfers(this.rariXFodl, this.ticketWindowStartBlock, this.snapshotBlock),
     ])
 
     const adjustedRariTransfers = await convertTransfers(lastDayRariXFodlTransfers, async (transfer: Transfer) => {

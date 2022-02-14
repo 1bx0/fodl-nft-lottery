@@ -13,7 +13,6 @@ import {
   Transfer,
 } from '../utils'
 import {
-  BLOCKS_PER_DAY_ETHEREUM,
   FODL_ABI,
   FODL_ADDRESS,
   LP_ETH_FODL_ADDRESS,
@@ -30,8 +29,14 @@ import {
 dotenv.config()
 
 class SushiLpCriteria extends Criteria {
-  constructor(snapshotBlock: number, lpAddress: string, lpDeploymentBlock: number, lpStakingAddress: string) {
-    super(snapshotBlock)
+  constructor(
+    snapshotBlock: number,
+    ticketWindowStartBlock: number,
+    lpAddress: string,
+    lpDeploymentBlock: number,
+    lpStakingAddress: string
+  ) {
+    super(snapshotBlock, ticketWindowStartBlock)
     this.provider = new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.lp = new Contract(lpAddress, SUSHI_LP_ABI, this.provider)
     this.lpStaking = new Contract(lpStakingAddress, LP_STAKING_ABI, this.provider)
@@ -63,12 +68,8 @@ class SushiLpCriteria extends Criteria {
     const [lpBalances, lpStakingBalances, lastDayLpTransfers, lastDayLpStakingTransfers] = await Promise.all([
       getBalances(this.lp, lpHolders, this.snapshotBlock),
       getBalances(this.lpStaking, lpHolders, this.snapshotBlock),
-      getHistoricTransfers(this.lp, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
-      this.getHistoricStakingTransfers(
-        this.lpStaking,
-        this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM,
-        this.snapshotBlock
-      ),
+      getHistoricTransfers(this.lp, this.ticketWindowStartBlock, this.snapshotBlock),
+      this.getHistoricStakingTransfers(this.lpStaking, this.ticketWindowStartBlock, this.snapshotBlock),
     ])
 
     const balances = sumAllocations(lpBalances, lpStakingBalances)
@@ -111,13 +112,25 @@ class SushiLpCriteria extends Criteria {
 }
 
 export class EthLpCriteria extends SushiLpCriteria {
-  constructor(snapshotBlock: number) {
-    super(snapshotBlock, LP_ETH_FODL_ADDRESS, LP_ETH_FODL_DEPLOYMENT_BLOCK, LP_ETH_FODL_STAKING_ADDRESS)
+  constructor(snapshotBlock: number, ticketWindowStartBlock: number) {
+    super(
+      snapshotBlock,
+      ticketWindowStartBlock,
+      LP_ETH_FODL_ADDRESS,
+      LP_ETH_FODL_DEPLOYMENT_BLOCK,
+      LP_ETH_FODL_STAKING_ADDRESS
+    )
   }
 }
 
 export class UsdcLpCriteria extends SushiLpCriteria {
-  constructor(snapshotBlock: number) {
-    super(snapshotBlock, LP_USDC_FODL_ADDRESS, LP_USDC_FODL_DEPLOYMENT_BLOCK, LP_USDC_FODL_STAKING_ADDRESS)
+  constructor(snapshotBlock: number, ticketWindowStartBlock: number) {
+    super(
+      snapshotBlock,
+      ticketWindowStartBlock,
+      LP_USDC_FODL_ADDRESS,
+      LP_USDC_FODL_DEPLOYMENT_BLOCK,
+      LP_USDC_FODL_STAKING_ADDRESS
+    )
   }
 }

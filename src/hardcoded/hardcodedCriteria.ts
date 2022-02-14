@@ -7,7 +7,7 @@ dotenv.config()
 
 export class HardcodedCriteria extends Criteria {
   constructor(url: string) {
-    super(0)
+    super(0, 0)
     this.url = url
   }
 

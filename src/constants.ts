@@ -3018,9 +3018,8 @@ export const FODL_ABI = [
 
 export const MANTISSA = BigNumber.from(10).pow(18)
 export const XFODL_PER_TICKET = 1000
-export const BLOCKS_PER_DAY_ETHEREUM = (24 * 60 * 60) / 15 // every 15 seconds
-export const BLOCKS_PER_DAY_MATIC = (24 * 60 * 60) / 2 //every 2 seconds
 export const EVENTS_CHUNK_SIZE = 50000
+export const SECONDS_IN_24_HRS = 86400
 
 export const EXCLUDE_LIST = [
   constants.AddressZero,

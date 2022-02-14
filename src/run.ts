@@ -1,6 +1,6 @@
 import dotenv from 'dotenv'
 import { BigNumber, ethers } from 'ethers'
-import { EXCLUDE_LIST } from './constants'
+import { EXCLUDE_LIST, SECONDS_IN_24_HRS } from './constants'
 import { Criteria } from './criteria'
 import { MaticLpCriteria } from './staking/maticLpCriteria'
 import { EthLpCriteria, UsdcLpCriteria } from './staking/sushiLpCriteria'
@@ -11,28 +11,45 @@ import { exclude, filterZeroes, getBlockAfterTimestamp, sumAllocations } from '.
 dotenv.config()
 
 async function run() {
-  console.log('getting snapshot blocks...')
+  console.log('getting ethereum snapshot block...')
 
   const ethereumSnapshotBlock = await getBlockAfterTimestamp(
-    Number(process.env.LOTTERY_START_TIMESTAMP),
+    Number(process.env.SNAPSHOT_TIMESTAMP),
     new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
   )
 
   console.log('ethereum snapshot block = ', ethereumSnapshotBlock)
+  console.log('getting ethereum ticketWindowStart block...')
+
+  const ethereumTicketWindowStartBlock = await getBlockAfterTimestamp(
+    Number(process.env.SNAPSHOT_TIMESTAMP) - SECONDS_IN_24_HRS,
+    new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
+  )
+
+  console.log('ethreum ticketWindowStartBlock = ', ethereumTicketWindowStartBlock)
+  console.log('getting maticSnapshotBlock...')
 
   const maticSnapshotBlock = await getBlockAfterTimestamp(
-    Number(process.env.LOTTERY_START_TIMESTAMP),
+    Number(process.env.SNAPSHOT_TIMESTAMP),
     new ethers.providers.StaticJsonRpcProvider(process.env.MATIC_RPC_PROVIDER)
   )
 
   console.log('matic snapshot block = ', maticSnapshotBlock)
+  console.log('getting matic ticketWindowStartBlock...')
+
+  const maticTicketWindowStartBlock = await getBlockAfterTimestamp(
+    Number(process.env.SNAPSHOT_TIMESTAMP) - SECONDS_IN_24_HRS,
+    new ethers.providers.JsonRpcProvider(process.env.MATIC_RPC_PROVIDER)
+  )
+
+  console.log('maticTicketWindowStartBlock = ', maticTicketWindowStartBlock)
 
   const rules: Criteria[] = [
-    new TradingCriteria(ethereumSnapshotBlock),
-    new XFodlCriteria(ethereumSnapshotBlock),
-    new EthLpCriteria(ethereumSnapshotBlock),
-    new UsdcLpCriteria(ethereumSnapshotBlock),
-    new MaticLpCriteria(maticSnapshotBlock),
+    new TradingCriteria(ethereumSnapshotBlock, ethereumTicketWindowStartBlock),
+    new XFodlCriteria(ethereumSnapshotBlock, ethereumTicketWindowStartBlock),
+    new EthLpCriteria(ethereumSnapshotBlock, ethereumTicketWindowStartBlock),
+    new UsdcLpCriteria(ethereumSnapshotBlock, ethereumTicketWindowStartBlock),
+    new MaticLpCriteria(maticSnapshotBlock, maticTicketWindowStartBlock),
   ]
 
   await Promise.all(rules.map((rule) => rule.countTickets()))

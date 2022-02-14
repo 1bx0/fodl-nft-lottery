@@ -35,8 +35,8 @@ dotenv.config()
  * splitting his position into a closed one and one that remains open.
  */
 export class TradingCriteria extends Criteria {
-  constructor(snapshotBlock: number) {
-    super(snapshotBlock)
+  constructor(snapshotBlock: number, ticketWindowStartBlock: number) {
+    super(snapshotBlock, ticketWindowStartBlock)
     this.provider = new providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.priceFeed = new ethers.Contract(CHAIN_LINK_FEED_ADDRESS, CHAIN_LINK_FEED_ABI, this.provider)
     this.registry = new ethers.Contract(FODL_REGISTRY_ADDRESS, FODL_REGISTRY_ABI, this.provider)

@@ -11,7 +11,6 @@ import {
   NamedAllocations,
 } from '../utils'
 import {
-  BLOCKS_PER_DAY_MATIC,
   FODL_ADDRESS_ON_MATIC,
   LP_FODL_MATIC_ADDRESS,
   LP_FODL_MATIC_DEPLOYMENT_BLOCK,
@@ -22,8 +21,8 @@ import {
 dotenv.config()
 
 export class MaticLpCriteria extends Criteria {
-  constructor(snapshotBlock: number) {
-    super(snapshotBlock)
+  constructor(snapshotBlock: number, ticketWindowStartBlock: number) {
+    super(snapshotBlock, ticketWindowStartBlock)
     this.provider = new ethers.providers.JsonRpcProvider(process.env.MATIC_RPC_PROVIDER)
     this.lp = new Contract(LP_FODL_MATIC_ADDRESS, SUSHI_LP_ABI, this.provider)
     this.fodlToken = new Contract(FODL_ADDRESS_ON_MATIC, ERC20_ABI, this.provider)
@@ -52,7 +51,7 @@ export class MaticLpCriteria extends Criteria {
 
     const [lpBalances, lastDayLpTransfers] = await Promise.all([
       getBalances(this.lp, lpHolders, this.snapshotBlock),
-      getHistoricTransfers(this.lp, this.snapshotBlock - BLOCKS_PER_DAY_MATIC, this.snapshotBlock),
+      getHistoricTransfers(this.lp, this.ticketWindowStartBlock, this.snapshotBlock),
     ])
 
     const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(lpBalances, lastDayLpTransfers)
