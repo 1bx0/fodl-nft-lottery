@@ -12,7 +12,7 @@ import {
   sumAllocations,
 } from '../utils'
 import {
-  BLOCKS_PER_DAY,
+  BLOCKS_PER_DAY_ETHEREUM,
   FODL_ABI,
   FODL_ADDRESS,
   LP_ETH_FODL_ADDRESS,
@@ -29,19 +29,16 @@ import {
 dotenv.config()
 
 class SushiLpCriteria extends Criteria {
-  constructor(lpAddress: string, lpDeploymentBlock: number, lpStakingAddress: string, allocationName: string) {
-    super()
+  constructor(snapshotBlock: number, lpAddress: string, lpDeploymentBlock: number, lpStakingAddress: string) {
+    super(snapshotBlock)
     this.provider = new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.lp = new Contract(lpAddress, SUSHI_LP_ABI, this.provider)
     this.lpStaking = new Contract(lpStakingAddress, LP_STAKING_ABI, this.provider)
     this.fodlToken = new Contract(FODL_ADDRESS, FODL_ABI, this.provider)
     this.lpDeploymentBlock = lpDeploymentBlock
-    this.allocationName = allocationName
   }
 
-  public allocations: NamedAllocations = {}
-
-  private allocationName: string
+  public allocations: NamedAllocations = { lp: {} }
 
   private provider: providers.Provider
   private lp: Contract
@@ -49,23 +46,24 @@ class SushiLpCriteria extends Criteria {
   private lpStaking: Contract
   private fodlToken: Contract
 
-  public async countTickets(snapshotBlock: number) {
-    console.log('countTickets')
+  public async countTickets() {
+    console.log(`LP ${this.lp.address} Criteria...`)
+
     const [lpFodlBalance, lpTotalSupply] = await Promise.all([
-      this.fodlToken.callStatic.balanceOf(this.lp.address, { blockTag: snapshotBlock }),
-      this.lp.callStatic.totalSupply({ blockTag: snapshotBlock }),
+      this.fodlToken.callStatic.balanceOf(this.lp.address, { blockTag: this.snapshotBlock }),
+      this.lp.callStatic.totalSupply({ blockTag: this.snapshotBlock }),
     ])
 
     const convertLpToTickets = (amount: BigNumber) =>
       amount.mul(lpFodlBalance).div(lpTotalSupply).mul(2).div(BigNumber.from(10).pow(SUSHI_LP_DECIMALS)).div(1000)
 
-    const lpHolders = await getHistoricHolders(this.lp, this.lpDeploymentBlock, snapshotBlock)
+    const lpHolders = await getHistoricHolders(this.lp, this.lpDeploymentBlock, this.snapshotBlock)
 
     const [lpBalances, lpStakingBalances, lastDayLpTransfers, lastDayLpStakingTransfers] = await Promise.all([
-      getBalances(this.lp, lpHolders, snapshotBlock),
-      getBalances(this.lpStaking, lpHolders, snapshotBlock),
-      getHistoricTransfers(this.lp, snapshotBlock - BLOCKS_PER_DAY, snapshotBlock),
-      getHistoricStakingTransfers(this.lpStaking, snapshotBlock - BLOCKS_PER_DAY, snapshotBlock),
+      getBalances(this.lp, lpHolders, this.snapshotBlock),
+      getBalances(this.lpStaking, lpHolders, this.snapshotBlock),
+      getHistoricTransfers(this.lp, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
+      getHistoricStakingTransfers(this.lpStaking, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
     ])
 
     const balances = sumAllocations(lpBalances, lpStakingBalances)
@@ -74,18 +72,18 @@ class SushiLpCriteria extends Criteria {
 
     const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
 
-    this.allocations[this.allocationName] = convertAllocation(minBalancesDuringLastDay, convertLpToTickets)
+    this.allocations.lp = convertAllocation(minBalancesDuringLastDay, convertLpToTickets)
   }
 }
 
 export class EthLpCriteria extends SushiLpCriteria {
-  constructor() {
-    super(LP_ETH_FODL_ADDRESS, LP_ETH_FODL_DEPLOYMENT_BLOCK, LP_ETH_FODL_STAKING_ADDRESS, 'eth-lp')
+  constructor(snapshotBlock: number) {
+    super(snapshotBlock, LP_ETH_FODL_ADDRESS, LP_ETH_FODL_DEPLOYMENT_BLOCK, LP_ETH_FODL_STAKING_ADDRESS)
   }
 }
 
 export class UsdcLpCriteria extends SushiLpCriteria {
-  constructor() {
-    super(LP_USDC_FODL_ADDRESS, LP_USDC_FODL_DEPLOYMENT_BLOCK, LP_USDC_FODL_STAKING_ADDRESS, 'usdc-lp')
+  constructor(snapshotBlock: number) {
+    super(snapshotBlock, LP_USDC_FODL_ADDRESS, LP_USDC_FODL_DEPLOYMENT_BLOCK, LP_USDC_FODL_STAKING_ADDRESS)
   }
 }

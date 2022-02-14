@@ -14,7 +14,7 @@ import {
   Transfer,
 } from '../utils'
 import {
-  BLOCKS_PER_DAY,
+  BLOCKS_PER_DAY_ETHEREUM,
   XFODL_ABI,
   XFODL_ADDRESS,
   XFODL_DEPLOYMENT_BLOCK,
@@ -30,8 +30,8 @@ import {
 dotenv.config()
 
 export class XFodlCriteria extends Criteria {
-  constructor() {
-    super()
+  constructor(snapshotBlock: number) {
+    super(snapshotBlock)
     this.provider = new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.rariXFodl = new Contract(RARI_XFODL_ADDRESS, RARI_XFODL_ABI, this.provider)
     this.xFodl = new Contract(XFODL_ADDRESS, XFODL_ABI, this.provider)
@@ -45,12 +45,13 @@ export class XFodlCriteria extends Criteria {
   private xFodl: Contract
   private fodlToken: Contract
 
-  public async countTickets(snapshotBlock: number) {
-    console.log('countTickets')
+  public async countTickets() {
+    console.log('xFodl Criteria...')
+
     const [xFodlBalance, xFodlTotalSupply, rariXFodlRate] = await Promise.all([
-      this.fodlToken.callStatic.balanceOf(XFODL_ADDRESS, { blockTag: snapshotBlock }),
-      this.xFodl.callStatic.totalSupply({ blockTag: snapshotBlock }),
-      this.rariXFodl.callStatic.exchangeRateCurrent({ blockTag: snapshotBlock }),
+      this.fodlToken.callStatic.balanceOf(XFODL_ADDRESS, { blockTag: this.snapshotBlock }),
+      this.xFodl.callStatic.totalSupply({ blockTag: this.snapshotBlock }),
+      this.rariXFodl.callStatic.exchangeRateCurrent({ blockTag: this.snapshotBlock }),
     ])
 
     const convertRariToXFodl = (amount: BigNumber) => amount.mul(rariXFodlRate).div(MANTISSA)
@@ -58,15 +59,15 @@ export class XFodlCriteria extends Criteria {
       amount.mul(xFodlBalance).div(xFodlTotalSupply).div(BigNumber.from(10).pow(FODL_DECIMALS)).div(1000)
 
     const [xFodlHolders, rariXFodlHolders] = await Promise.all([
-      getHistoricHolders(this.xFodl, XFODL_DEPLOYMENT_BLOCK, snapshotBlock),
-      getHistoricHolders(this.rariXFodl, RARI_XFODL_DEPLOYMENT_BLOCK, snapshotBlock),
+      getHistoricHolders(this.xFodl, XFODL_DEPLOYMENT_BLOCK, this.snapshotBlock),
+      getHistoricHolders(this.rariXFodl, RARI_XFODL_DEPLOYMENT_BLOCK, this.snapshotBlock),
     ])
 
     const [xFodlBalances, lastDayXFodlTransfers, rariXFodlBalances, lastDayRariXFodlTransfers] = await Promise.all([
-      getBalances(this.xFodl, xFodlHolders, snapshotBlock),
-      getHistoricTransfers(this.xFodl, snapshotBlock - BLOCKS_PER_DAY, snapshotBlock),
-      getBalances(this.rariXFodl, rariXFodlHolders, snapshotBlock),
-      getHistoricTransfers(this.rariXFodl, snapshotBlock - BLOCKS_PER_DAY, snapshotBlock),
+      getBalances(this.xFodl, xFodlHolders, this.snapshotBlock),
+      getHistoricTransfers(this.xFodl, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
+      getBalances(this.rariXFodl, rariXFodlHolders, this.snapshotBlock),
+      getHistoricTransfers(this.rariXFodl, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
     ])
 
     const lastDayTransfers: Transfer[] = [

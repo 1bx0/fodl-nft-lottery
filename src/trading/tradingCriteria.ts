@@ -28,9 +28,15 @@ import { NamedAllocations, parseAddress } from '../utils'
 
 dotenv.config()
 
+/*
+ * This rule allocates tickets based on USD contributed to the tax wallet. 1 USD = 1 ticket.
+ * A bonus of 50 tickets is given for every trade closed with more than 5 USD contribution.
+ * Any withdrawal of position value is considered a closed trade as the user is essentially
+ * splitting his position into a closed one and one that remains open.
+ */
 export class TradingCriteria extends Criteria {
-  constructor() {
-    super()
+  constructor(snapshotBlock: number) {
+    super(snapshotBlock)
     this.provider = new providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
     this.priceFeed = new ethers.Contract(CHAIN_LINK_FEED_ADDRESS, CHAIN_LINK_FEED_ABI, this.provider)
     this.registry = new ethers.Contract(FODL_REGISTRY_ADDRESS, FODL_REGISTRY_ABI, this.provider)
@@ -88,22 +94,13 @@ export class TradingCriteria extends Criteria {
     return token.toLowerCase() != COMP_ADDRESS.toLowerCase() && token.toLowerCase() != AAVE_ADDRESS.toLowerCase()
   }
 
-  public async countTickets(snapshotBlock: number) {
-    console.log('Getting all transfers to tax wallet...')
+  public async countTickets() {
+    console.log('Trading Criteria...')
 
-    console.log(
-      `Splitting in ${Math.ceil(
-        (snapshotBlock - DEPLOY_BLOCK_NUMBER) / EVENTS_CHUNK_SIZE
-      )} chunks of size ${EVENTS_CHUNK_SIZE}}`
-    )
-
-    const tag = 'count trading tickets for each dollar contributed to tax wallet'
-    console.time(tag)
-    for (let fromBlock = DEPLOY_BLOCK_NUMBER; fromBlock <= snapshotBlock; fromBlock += EVENTS_CHUNK_SIZE) {
+    for (let fromBlock = DEPLOY_BLOCK_NUMBER; fromBlock <= this.snapshotBlock; fromBlock += EVENTS_CHUNK_SIZE) {
       this.clearCaches()
-      await this.processLogs(fromBlock, Math.min(fromBlock + EVENTS_CHUNK_SIZE, snapshotBlock))
+      await this.processLogs(fromBlock, Math.min(fromBlock + EVENTS_CHUNK_SIZE, this.snapshotBlock))
     }
-    console.timeEnd(tag)
   }
 
   private async processLogs(fromBlock: number, toBlock: number) {
@@ -144,6 +141,7 @@ export class TradingCriteria extends Criteria {
         this.getPrice(token, blockNumber),
         this.getDecimals(log.address),
       ])
+
       const dollarsContributed = tokenAmount
         .mul(price)
         .div(BigNumber.from(10).pow(USD_DECIMALS))

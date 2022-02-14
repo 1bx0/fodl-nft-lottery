@@ -11,7 +11,7 @@ import {
   NamedAllocations,
 } from '../utils'
 import {
-  BLOCKS_PER_DAY,
+  BLOCKS_PER_DAY_MATIC,
   FODL_ADDRESS_ON_MATIC,
   LP_FODL_MATIC_ADDRESS,
   LP_FODL_MATIC_DEPLOYMENT_BLOCK,
@@ -22,8 +22,8 @@ import {
 dotenv.config()
 
 export class MaticLpCriteria extends Criteria {
-  constructor() {
-    super()
+  constructor(snapshotBlock: number) {
+    super(snapshotBlock)
     this.provider = new ethers.providers.JsonRpcProvider(process.env.MATIC_RPC_PROVIDER)
     this.lp = new Contract(LP_FODL_MATIC_ADDRESS, SUSHI_LP_ABI, this.provider)
     this.fodlToken = new Contract(FODL_ADDRESS_ON_MATIC, ERC20_ABI, this.provider)
@@ -37,21 +37,22 @@ export class MaticLpCriteria extends Criteria {
   private lpDeploymentBlock: number
   private fodlToken: Contract
 
-  public async countTickets(snapshotBlock: number) {
-    console.log('countTickets')
+  public async countTickets() {
+    console.log('Matic LP Criteria...')
+
     const [lpFodlBalance, lpTotalSupply] = await Promise.all([
-      this.fodlToken.callStatic.balanceOf(this.lp.address, { blockTag: snapshotBlock }),
-      this.lp.callStatic.totalSupply({ blockTag: snapshotBlock }),
+      this.fodlToken.callStatic.balanceOf(this.lp.address, { blockTag: this.snapshotBlock }),
+      this.lp.callStatic.totalSupply({ blockTag: this.snapshotBlock }),
     ])
 
     const convertLpToTickets = (amount: BigNumber) =>
       amount.mul(lpFodlBalance).div(lpTotalSupply).mul(2).div(BigNumber.from(10).pow(MATIC_LP_DECIMALS)).div(1000)
 
-    const lpHolders = await getHistoricHolders(this.lp, this.lpDeploymentBlock, snapshotBlock)
+    const lpHolders = await getHistoricHolders(this.lp, this.lpDeploymentBlock, this.snapshotBlock)
 
     const [lpBalances, lastDayLpTransfers] = await Promise.all([
-      getBalances(this.lp, lpHolders, snapshotBlock),
-      getHistoricTransfers(this.lp, snapshotBlock - BLOCKS_PER_DAY, snapshotBlock),
+      getBalances(this.lp, lpHolders, this.snapshotBlock),
+      getHistoricTransfers(this.lp, this.snapshotBlock - BLOCKS_PER_DAY_MATIC, this.snapshotBlock),
     ])
 
     const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(lpBalances, lastDayLpTransfers)
