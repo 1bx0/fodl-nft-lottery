@@ -1,5 +1,5 @@
 import { BigNumber, Contract, ethers } from 'ethers'
-import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
+import { ERC20_ABI, EVENTS_CHUNK_SIZE, TIMESTAMP_SEARCH_MARGIN } from './constants'
 
 export type Allocation = { [key: string]: BigNumber }
 export type NamedAllocations = { [reason: string]: Allocation }
@@ -106,4 +106,49 @@ export const getMinimumBalancesDuringLastDay = (balances: Allocation, unsortedTr
     updateMinBalances(balances)
   }
   return minimumBalances
+}
+
+// returns blocknumber of first block after given timestamp
+export const getBlockAfterTimestamp = async (
+  timestamp: number,
+  provider: ethers.providers.StaticJsonRpcProvider
+): Promise<number> => {
+  let upperBlockNum = await provider.getBlockNumber()
+  let searchResult = Math.floor(upperBlockNum / 2)
+  let lowerBlockNum = 0
+  const timeNow = (await provider.getBlock(upperBlockNum)).timestamp
+
+  if (timestamp > timeNow) {
+    throw new Error('cannot get block number for timestamp in future')
+  }
+  if (timestamp < TIMESTAMP_SEARCH_MARGIN) {
+    searchResult = 0
+  } else if (timeNow - timestamp < TIMESTAMP_SEARCH_MARGIN) {
+    searchResult = upperBlockNum
+  }
+
+  let searchResultTimeStamp = (await provider.getBlock(searchResult)).timestamp
+  while (Math.abs(searchResultTimeStamp - timestamp) > TIMESTAMP_SEARCH_MARGIN) {
+    if (timestamp > searchResultTimeStamp) {
+      lowerBlockNum = searchResult
+    } else if (timestamp < searchResultTimeStamp) {
+      upperBlockNum = searchResult
+    }
+    searchResult = Math.floor(lowerBlockNum + (upperBlockNum - lowerBlockNum) / 2)
+    searchResultTimeStamp = (await provider.getBlock(searchResult)).timestamp
+  }
+
+  if (searchResultTimeStamp <= timestamp) {
+    while (searchResultTimeStamp <= timestamp) {
+      searchResult++
+      searchResultTimeStamp = (await provider.getBlock(searchResult)).timestamp
+    }
+    return searchResult
+  } else {
+    while (searchResultTimeStamp > timestamp) {
+      searchResult--
+      searchResultTimeStamp = (await provider.getBlock(searchResult)).timestamp
+    }
+    return searchResult + 1
+  }
 }

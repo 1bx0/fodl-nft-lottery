@@ -3030,3 +3030,5 @@ export const EXCLUDE_LIST = [
   '0x872c67dd383db7b7e9bc1800546f1ae715a0bc0c', // Team LP Address
   '0xf0c8c8b7cece4a5fb9010db52649e3ef3dc1a3e6', // Team LP Address
 ]
+
+export const TIMESTAMP_SEARCH_MARGIN = 150
