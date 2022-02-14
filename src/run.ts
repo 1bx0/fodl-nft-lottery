@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { BigNumber, ethers } from 'ethers'
+import { BigNumber } from 'ethers'
 import { EXCLUDE_LIST } from './constants'
 import { Criteria } from './criteria'
 import { MaticLpCriteria } from './staking/maticLpCriteria'
@@ -24,12 +24,13 @@ const rules: Criteria[] = [
 async function run() {
   await Promise.all(rules.map((rule) => rule.countTickets()))
 
-  const allocationWithZeroes = sumAllocations(...rules.flatMap((rule) => Object.values(rule.allocations)))
+  const allocationWithZeroes = exclude(
+    sumAllocations(...rules.flatMap((rule) => Object.values(rule.allocations))),
+    EXCLUDE_LIST
+  )
+  const allocation = filterZeroes(allocationWithZeroes)
 
-  const allocationBeforeBlacklist = filterZeroes(allocationWithZeroes)
-  const allocation = exclude(allocationBeforeBlacklist, EXCLUDE_LIST)
-
-  console.log(`owner | total | trading | closed-trade | eth-lp | usdc-lp | matic-lp`)
+  console.log(`owner | total | trading | closed-trade | xfodl | eth-lp | usdc-lp | matic-lp`)
   console.log(
     Object.entries(allocation)
       .map(
@@ -48,6 +49,10 @@ async function run() {
     const sortedKeys = Object.keys(allocation).sort()
     const totalTickets = Object.values(allocation).reduce((acc, v) => acc.add(v), BigNumber.from(0))
     // pick random value between 0 and totalTickets - 1
+    let index = BigNumber.from(Math.floor(Math.random() * totalTickets.toNumber()))
+    let i = 0
+    while (index.gte(allocation[sortedKeys[i]])) index = index.sub(allocation[sortedKeys[i++]])
+    console.log(`winner: ${sortedKeys[i]}`)
   }
 }
 
