@@ -1,27 +1,40 @@
 import dotenv from 'dotenv'
-import { BigNumber } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 import { EXCLUDE_LIST } from './constants'
 import { Criteria } from './criteria'
 import { MaticLpCriteria } from './staking/maticLpCriteria'
 import { EthLpCriteria, UsdcLpCriteria } from './staking/sushiLpCriteria'
 import { XFodlCriteria } from './staking/xFodlCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
-import { exclude, filterZeroes, sumAllocations } from './utils'
+import { exclude, filterZeroes, getBlockAfterTimestamp, sumAllocations } from './utils'
 
 dotenv.config()
 
-const ethereumSnapshotBlock = Number(process.env.ETHEREUM_SNAPSHOT_BLOCK)
-const maticSnapshotBlock = Number(process.env.MATIC_SNAPSHOT_BLOCK)
-
-const rules: Criteria[] = [
-  new TradingCriteria(ethereumSnapshotBlock),
-  new XFodlCriteria(ethereumSnapshotBlock),
-  new EthLpCriteria(ethereumSnapshotBlock),
-  new UsdcLpCriteria(ethereumSnapshotBlock),
-  new MaticLpCriteria(maticSnapshotBlock),
-]
-
 async function run() {
+  console.log('getting snapshot blocks...')
+
+  const ethereumSnapshotBlock = await getBlockAfterTimestamp(
+    Number(process.env.LOTTERY_START_TIMESTAMP),
+    new ethers.providers.JsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
+  )
+
+  console.log('ethereum snapshot block = ', ethereumSnapshotBlock)
+
+  const maticSnapshotBlock = await getBlockAfterTimestamp(
+    Number(process.env.LOTTERY_START_TIMESTAMP),
+    new ethers.providers.StaticJsonRpcProvider(process.env.MATIC_RPC_PROVIDER)
+  )
+
+  console.log('matic snapshot block = ', maticSnapshotBlock)
+
+  const rules: Criteria[] = [
+    new TradingCriteria(ethereumSnapshotBlock),
+    new XFodlCriteria(ethereumSnapshotBlock),
+    new EthLpCriteria(ethereumSnapshotBlock),
+    new UsdcLpCriteria(ethereumSnapshotBlock),
+    new MaticLpCriteria(maticSnapshotBlock),
+  ]
+
   await Promise.all(rules.map((rule) => rule.countTickets()))
 
   const allocationWithZeroes = exclude(
