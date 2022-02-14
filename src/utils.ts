@@ -21,7 +21,7 @@ export const sumAllocations = (...allocations: Allocation[]): Allocation => {
   const result: Allocation = {}
   allocations.forEach((a) =>
     Object.entries(a).forEach(([owner, value]) => {
-      result[owner] = value.add(result[owner] || BigNumber.from(0))
+      result[owner.toLowerCase()] = value.add(result[owner.toLowerCase()] || BigNumber.from(0))
     })
   )
   return result
@@ -31,11 +31,11 @@ export const filterZeroes = (allocation: Allocation): Allocation =>
   Object.fromEntries(Object.entries(allocation).filter(([_, value]) => !value.isZero()))
 
 export const exclude = (allocation: Allocation, list: string[]) => {
-  list.forEach((element) => (allocation[element] = BigNumber.from(0)))
+  list.forEach((element) => (allocation[element.toLowerCase()] = BigNumber.from(0)))
   return allocation
 }
 
-export const parseAddress = (paddedAddress: string) => ethers.utils.hexDataSlice(paddedAddress, 12)
+export const parseAddress = (paddedAddress: string) => ethers.utils.hexDataSlice(paddedAddress, 12).toLowerCase()
 
 export const getHistoricTransfers = async (
   token: Contract,

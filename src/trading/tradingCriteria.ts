@@ -58,15 +58,17 @@ export class TradingCriteria extends Criteria {
   }
 
   private async getOwner(from: string, blockNumber: number) {
-    const key = `${blockNumber}|${from}`
+    const key = `${blockNumber}|${from.toLowerCase()}`
     if (!this.ownersCache[key])
-      this.ownersCache[key] = await this.registry.callStatic.accountOwner(from, { blockTag: blockNumber })
+      this.ownersCache[key] = (
+        await this.registry.callStatic.accountOwner(from, { blockTag: blockNumber })
+      ).toLowerCase()
 
     return this.ownersCache[key]
   }
 
   private async getPrice(token: string, blockNumber: number) {
-    const key = `${blockNumber}|${token}`
+    const key = `${blockNumber}|${token.toLowerCase()}`
     if (!this.pricesCache[key])
       this.pricesCache[key] = await this.priceFeed.callStatic.latestAnswer(token, USD_ADDRESS, {
         blockTag: blockNumber,
@@ -76,7 +78,7 @@ export class TradingCriteria extends Criteria {
   }
 
   private async getDecimals(token: string) {
-    const key = token
+    const key = token.toLowerCase()
     if (!this.decimalsCache[key])
       this.decimalsCache[key] = await new Contract(token, ERC20_ABI, this.provider).callStatic.decimals()
 
@@ -84,9 +86,9 @@ export class TradingCriteria extends Criteria {
   }
 
   private getToken(address: string) {
-    if (address.toLowerCase() == WETH_ADDRESS.toLowerCase()) return ETH_ADDRESS
-    if (address.toLowerCase() == WBTC_ADDRESS.toLowerCase()) return BTC_ADDRESS
-    if (address.toLowerCase() == STK_AAVE_ADDRESS.toLowerCase()) return AAVE_ADDRESS
+    if (address.toLowerCase() == WETH_ADDRESS.toLowerCase()) return ETH_ADDRESS.toLowerCase()
+    if (address.toLowerCase() == WBTC_ADDRESS.toLowerCase()) return BTC_ADDRESS.toLowerCase()
+    if (address.toLowerCase() == STK_AAVE_ADDRESS.toLowerCase()) return AAVE_ADDRESS.toLowerCase()
     return address
   }
 
