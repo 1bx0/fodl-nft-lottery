@@ -2,14 +2,13 @@ import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import {
   BLOCKS_PER_DAY_ETHEREUM,
-  FODL_ABI,
+  ERC20_ABI,
   FODL_ADDRESS,
   FODL_DECIMALS,
   MANTISSA,
   RARI_XFODL_ABI,
   RARI_XFODL_ADDRESS,
   RARI_XFODL_DEPLOYMENT_BLOCK,
-  XFODL_ABI,
   XFODL_ADDRESS,
   XFODL_DEPLOYMENT_BLOCK,
 } from '../constants'
@@ -31,10 +30,10 @@ dotenv.config()
 export class XFodlCriteria extends Criteria {
   constructor(snapshotBlock: number) {
     super(snapshotBlock)
-    this.provider = new ethers.providers.StaticJsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
+    this.provider = new ethers.providers.WebSocketProvider(process.env.ETHEREUM_RPC_PROVIDER!)
     this.rariXFodl = new Contract(RARI_XFODL_ADDRESS, RARI_XFODL_ABI, this.provider)
-    this.xFodl = new Contract(XFODL_ADDRESS, XFODL_ABI, this.provider)
-    this.fodlToken = new Contract(FODL_ADDRESS, FODL_ABI, this.provider)
+    this.xFodl = new Contract(XFODL_ADDRESS, ERC20_ABI, this.provider)
+    this.fodlToken = new Contract(FODL_ADDRESS, ERC20_ABI, this.provider)
   }
 
   public allocations: NamedAllocations = { xFodl: {} }

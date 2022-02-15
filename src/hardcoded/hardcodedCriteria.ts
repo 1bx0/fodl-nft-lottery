@@ -16,7 +16,7 @@ export class HardcodedCriteria extends Criteria {
   private url: string
 
   public async countTickets() {
-    console.log('Matic LP Criteria...')
+    console.log('Getting hardcoded allocation from url...')
     const res = await axios.get(this.url)
     this.allocations.hardcoded = Object.fromEntries(
       Object.entries(res.data).map(([k, v]) => [k.toLowerCase(), BigNumber.from(v)])

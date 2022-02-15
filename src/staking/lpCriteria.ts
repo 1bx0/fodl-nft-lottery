@@ -2,17 +2,20 @@ import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import {
   BLOCKS_PER_DAY_ETHEREUM,
-  FODL_ABI,
+  ERC20_ABI,
   FODL_ADDRESS,
+  FODL_ADDRESS_ON_MATIC,
   FODL_DECIMALS,
   LP_ETH_FODL_ADDRESS,
   LP_ETH_FODL_DEPLOYMENT_BLOCK,
   LP_ETH_FODL_STAKING_ADDRESS,
+  LP_FODL_MATIC_ADDRESS,
+  LP_FODL_MATIC_DEPLOYMENT_BLOCK,
+  LP_FODL_MATIC_STAKING_ADDRESS,
   LP_STAKING_ABI,
   LP_USDC_FODL_ADDRESS,
   LP_USDC_FODL_DEPLOYMENT_BLOCK,
   LP_USDC_FODL_STAKING_ADDRESS,
-  SUSHI_LP_ABI,
 } from '../constants'
 import { Criteria } from '../criteria'
 import {
@@ -29,14 +32,21 @@ import {
 
 dotenv.config()
 
-class SushiLpCriteria extends Criteria {
-  constructor(snapshotBlock: number, lpAddress: string, lpDeploymentBlock: number, lpStakingAddress: string) {
+class LpCriteria extends Criteria {
+  constructor(
+    snapshotBlock: number,
+    lpAddress: string,
+    lpDeploymentBlock: number,
+    lpStakingAddress: string,
+    providerUrl: string | undefined,
+    fodlTokenAddress: string
+  ) {
     super(snapshotBlock)
-    this.provider = new ethers.providers.StaticJsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
-    this.lp = new Contract(lpAddress, SUSHI_LP_ABI, this.provider)
-    this.lpStaking = new Contract(lpStakingAddress, LP_STAKING_ABI, this.provider)
-    this.fodlToken = new Contract(FODL_ADDRESS, FODL_ABI, this.provider)
+    this.provider = new ethers.providers.WebSocketProvider(providerUrl!)
+    this.lp = new Contract(lpAddress, ERC20_ABI, this.provider)
     this.lpDeploymentBlock = lpDeploymentBlock
+    this.lpStaking = new Contract(lpStakingAddress, LP_STAKING_ABI, this.provider)
+    this.fodlToken = new Contract(fodlTokenAddress, ERC20_ABI, this.provider)
   }
 
   public allocations: NamedAllocations = { lp: {} }
@@ -48,7 +58,7 @@ class SushiLpCriteria extends Criteria {
   private fodlToken: Contract
 
   public async countTickets() {
-    console.log(`LP ${this.lp.address} Criteria...`)
+    console.log(`LP ${this.lp.address} on ${(await this.provider.getNetwork()).name} criteria...`)
 
     const [lpFodlBalance, lpTotalSupply] = await Promise.all([
       this.fodlToken.callStatic.balanceOf(this.lp.address, { blockTag: this.snapshotBlock }),
@@ -110,14 +120,41 @@ class SushiLpCriteria extends Criteria {
   }
 }
 
-export class EthLpCriteria extends SushiLpCriteria {
+export class EthLpCriteria extends LpCriteria {
   constructor(snapshotBlock: number) {
-    super(snapshotBlock, LP_ETH_FODL_ADDRESS, LP_ETH_FODL_DEPLOYMENT_BLOCK, LP_ETH_FODL_STAKING_ADDRESS)
+    super(
+      snapshotBlock,
+      LP_ETH_FODL_ADDRESS,
+      LP_ETH_FODL_DEPLOYMENT_BLOCK,
+      LP_ETH_FODL_STAKING_ADDRESS,
+      process.env.ETHEREUM_RPC_PROVIDER,
+      FODL_ADDRESS
+    )
   }
 }
 
-export class UsdcLpCriteria extends SushiLpCriteria {
+export class UsdcLpCriteria extends LpCriteria {
   constructor(snapshotBlock: number) {
-    super(snapshotBlock, LP_USDC_FODL_ADDRESS, LP_USDC_FODL_DEPLOYMENT_BLOCK, LP_USDC_FODL_STAKING_ADDRESS)
+    super(
+      snapshotBlock,
+      LP_USDC_FODL_ADDRESS,
+      LP_USDC_FODL_DEPLOYMENT_BLOCK,
+      LP_USDC_FODL_STAKING_ADDRESS,
+      process.env.ETHEREUM_RPC_PROVIDER,
+      FODL_ADDRESS
+    )
+  }
+}
+
+export class MaticLpCriteria extends LpCriteria {
+  constructor(snapshotBlock: number) {
+    super(
+      snapshotBlock,
+      LP_FODL_MATIC_ADDRESS,
+      LP_FODL_MATIC_DEPLOYMENT_BLOCK,
+      LP_FODL_MATIC_STAKING_ADDRESS,
+      process.env.MATIC_RPC_PROVIDER,
+      FODL_ADDRESS_ON_MATIC
+    )
   }
 }

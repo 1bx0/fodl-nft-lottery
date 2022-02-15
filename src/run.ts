@@ -1,14 +1,13 @@
 import dotenv from 'dotenv'
 import { BigNumber } from 'ethers'
-import { writeFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
 import { EXCLUDE_LIST } from './constants'
 import { Criteria } from './criteria'
 import { HardcodedCriteria } from './hardcoded/hardcodedCriteria'
-import { MaticLpCriteria } from './staking/maticLpCriteria'
-import { EthLpCriteria, UsdcLpCriteria } from './staking/sushiLpCriteria'
+import { EthLpCriteria, MaticLpCriteria, UsdcLpCriteria } from './staking/lpCriteria'
 import { XFodlCriteria } from './staking/xFodlCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
-import { convertAllocation, exclude, filterZeroes, sumAllocations } from './utils'
+import { Allocation, exclude, filterZeroes, sumAllocations } from './utils'
 
 dotenv.config()
 
@@ -49,13 +48,14 @@ async function run() {
           `${rules[1].allocations.xFodl[owner] || 0} | ` +
           `${rules[2].allocations.lp[owner] || 0} | ` +
           `${rules[3].allocations.lp[owner] || 0} | ` +
-          `${rules[4].allocations.maticLp[owner] || 0} | ` +
+          `${rules[4].allocations.lp[owner] || 0} | ` +
           `${rules[5].allocations.hardcoded[owner] || 0} |`
       )
       .join('\n')
   )
 
   if (process.env.RANDOM_LOTTERY_SEED) {
+    console.log(`Running a lottery with random seed: ${process.env.RANDOM_LOTTERY_SEED}`)
     const sortedKeys = Object.keys(allocation).sort()
     const totalTickets = Object.values(allocation).reduce((acc, v) => acc.add(v), BigNumber.from(0))
 
@@ -66,6 +66,11 @@ async function run() {
     while (index.gte(allocation[sortedKeys[i]])) index = index.sub(allocation[sortedKeys[i++]])
     console.log(`winner: ${sortedKeys[i]}`)
   }
+  console.log('All done!')
+  process.exit(0)
 }
 
-run().catch(console.error)
+run().catch((e) => {
+  console.error(e)
+  process.exit(-1)
+})

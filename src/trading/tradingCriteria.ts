@@ -37,7 +37,7 @@ dotenv.config()
 export class TradingCriteria extends Criteria {
   constructor(snapshotBlock: number) {
     super(snapshotBlock)
-    this.provider = new providers.StaticJsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER)
+    this.provider = new providers.WebSocketProvider(process.env.ETHEREUM_RPC_PROVIDER!)
     this.priceFeed = new ethers.Contract(CHAIN_LINK_FEED_ADDRESS, CHAIN_LINK_FEED_ABI, this.provider)
     this.registry = new ethers.Contract(FODL_REGISTRY_ADDRESS, FODL_REGISTRY_ABI, this.provider)
   }

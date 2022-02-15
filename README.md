@@ -12,13 +12,13 @@ In .env file:
 # Block at which we take the snapshot on ethereum
 ETHEREUM_SNAPSHOT_BLOCK=14202100
 
-# Ethereum RPC provider for archival node (You can use alchemy to otain one)
+# Ethereum websocket RPC provider for archival node (You can use alchemy to obtain one)
 ETHEREUM_RPC_PROVIDER=
 
 # Block at which we take the snapshot on matic
 MATIC_SNAPSHOT_BLOCK=24917978
 
-# Matic RPC provider for archival node(You can use alchemy to obtain one)
+# Matic websocket RPC provider for archival node(You can use alchemy to obtain one)
 MATIC_RPC_PROVIDER=
 
 # URL for boatlifters allocation
