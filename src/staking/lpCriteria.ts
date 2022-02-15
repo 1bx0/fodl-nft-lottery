@@ -39,7 +39,8 @@ class LpCriteria extends Criteria {
     lpDeploymentBlock: number,
     lpStakingAddress: string,
     providerUrl: string | undefined,
-    fodlTokenAddress: string
+    fodlTokenAddress: string,
+    allocationName: string
   ) {
     super(snapshotBlock)
     this.provider = new ethers.providers.WebSocketProvider(providerUrl!)
@@ -47,15 +48,17 @@ class LpCriteria extends Criteria {
     this.lpDeploymentBlock = lpDeploymentBlock
     this.lpStaking = new Contract(lpStakingAddress, LP_STAKING_ABI, this.provider)
     this.fodlToken = new Contract(fodlTokenAddress, ERC20_ABI, this.provider)
+    this.allocationName = allocationName
   }
 
-  public allocations: NamedAllocations = { lp: {} }
+  public allocations: NamedAllocations = {}
 
   private provider: providers.Provider
   private lp: Contract
   private lpDeploymentBlock: number
   private lpStaking: Contract
   private fodlToken: Contract
+  private allocationName: string
 
   public async countTickets() {
     console.log(`LP ${this.lp.address} on ${(await this.provider.getNetwork()).name} criteria...`)
@@ -87,13 +90,13 @@ class LpCriteria extends Criteria {
 
     const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
 
-    this.allocations.lp = convertAllocation(minBalancesDuringLastDay, convertLpToTickets)
+    this.allocations[this.allocationName] = convertAllocation(minBalancesDuringLastDay, convertLpToTickets)
   }
 
   private async getHistoricStakingTransfers(token: Contract, fromBlock: number, toBlock: number): Promise<Transfer[]> {
     const staking = new ethers.Contract(token.address, LP_STAKING_ABI, token.provider)
 
-    const tag = `${Math.random()}-stakingEvents`
+    const tag = `stakingEvents-${token.address}`
     console.time(tag)
     const [stakeLogs, withdrawLogs] = await Promise.all([
       staking.queryFilter(staking.filters.Staked(), fromBlock, toBlock),
@@ -128,7 +131,8 @@ export class EthLpCriteria extends LpCriteria {
       LP_ETH_FODL_DEPLOYMENT_BLOCK,
       LP_ETH_FODL_STAKING_ADDRESS,
       process.env.ETHEREUM_RPC_PROVIDER,
-      FODL_ADDRESS
+      FODL_ADDRESS,
+      'fodl-eth-lp'
     )
   }
 }
@@ -141,7 +145,8 @@ export class UsdcLpCriteria extends LpCriteria {
       LP_USDC_FODL_DEPLOYMENT_BLOCK,
       LP_USDC_FODL_STAKING_ADDRESS,
       process.env.ETHEREUM_RPC_PROVIDER,
-      FODL_ADDRESS
+      FODL_ADDRESS,
+      'fodl-usdc-lp'
     )
   }
 }
@@ -154,7 +159,8 @@ export class MaticLpCriteria extends LpCriteria {
       LP_FODL_MATIC_DEPLOYMENT_BLOCK,
       LP_FODL_MATIC_STAKING_ADDRESS,
       process.env.MATIC_RPC_PROVIDER,
-      FODL_ADDRESS_ON_MATIC
+      FODL_ADDRESS_ON_MATIC,
+      'fodl-matic-lp'
     )
   }
 }

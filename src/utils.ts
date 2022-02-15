@@ -1,7 +1,9 @@
 import { BigNumber, Contract, ethers } from 'ethers'
+import { readFileSync, writeFileSync } from 'fs'
 import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
 
 export type Allocation = { [key: string]: BigNumber }
+export type AllocationWithBreakdown = { [key: string]: { total: BigNumber; [criteria: string]: BigNumber } }
 export type NamedAllocations = { [reason: string]: Allocation }
 export type Transfer = {
   blockNumber: number
@@ -44,7 +46,7 @@ export const getHistoricTransfers = async (
 ): Promise<Transfer[]> => {
   const erc20 = new ethers.Contract(token.address, ERC20_ABI, token.provider)
 
-  const tag = `${Math.random()}-transfers`
+  const tag = `transfers-${token.address}`
   console.time(tag)
   const logs = await erc20.queryFilter(erc20.filters.Transfer(), fromBlock, toBlock)
   console.timeEnd(tag)
@@ -62,7 +64,7 @@ export const getHistoricHolders = async (token: Contract, fromBlock: number, toB
   const holders: Set<string> = new Set<string>()
   const erc20 = new ethers.Contract(token.address, ERC20_ABI, token.provider)
 
-  const tag = `${Math.random()}-holders`
+  const tag = `holders-${token.address}`
   console.time(tag)
   for (let i = fromBlock; i <= toBlock; i += EVENTS_CHUNK_SIZE) {
     const logs = await erc20.queryFilter(erc20.filters.Transfer(), i, Math.min(i + EVENTS_CHUNK_SIZE, toBlock))
@@ -75,9 +77,11 @@ export const getHistoricHolders = async (token: Contract, fromBlock: number, toB
   return holders
 }
 
-export const getBalances = async (erc20: Contract, addresses: Set<string>, atBlock: number): Promise<Allocation> => {
+export const getBalances = async (token: Contract, addresses: Set<string>, atBlock: number): Promise<Allocation> => {
   const addrs = [...addresses]
-  const tag = `${Math.random()}-holders`
+  const erc20 = new ethers.Contract(token.address, ERC20_ABI, token.provider)
+
+  const tag = `balances-${erc20.address}`
   console.time(tag)
   const balances = await Promise.all(addrs.map((address) => erc20.callStatic.balanceOf(address, { blockTag: atBlock })))
   console.timeEnd(tag)
@@ -106,4 +110,37 @@ export const getMinimumBalancesDuringLastDay = (balances: Allocation, unsortedTr
     updateMinBalances(balances)
   }
   return minimumBalances
+}
+
+export const computeAllocationBreakdown = (totals: Allocation, as: NamedAllocations): AllocationWithBreakdown =>
+  Object.fromEntries(
+    Object.entries(totals).map(([k, v]) => [
+      k,
+      { total: v, ...Object.fromEntries(Object.entries(as).map(([n, a]) => [n, a[k] || BigNumber.from(0)])) },
+    ])
+  )
+
+export const logBreakdown = (allocationWithBreakdown: AllocationWithBreakdown) => {
+  const critertia = Object.keys(Object.values(allocationWithBreakdown)[0]).sort()
+  console.log(`owner | ${critertia.join(' | ')}`)
+  console.log(
+    Object.entries(allocationWithBreakdown)
+      .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c]).join(' | ')}`)
+      .join('\n')
+  )
+}
+
+export const storeAllocationBreakdown = (source: AllocationWithBreakdown, fileName: string) => {
+  console.log(`Storing allocation to: ${fileName} ...`)
+
+  writeFileSync(
+    fileName,
+    JSON.stringify(source, (_, v) => (v.type! == 'BigNumber' ? BigNumber.from(v.hex).toNumber() : v), 2),
+    'utf-8'
+  )
+}
+
+export const loadAllocationBreakdown = (fileName: string): AllocationWithBreakdown => {
+  console.log(`Loading allocation from: ${fileName} ...`)
+  return JSON.parse(readFileSync(fileName, 'utf-8'), (_, v) => (v instanceof Number ? BigNumber.from(v) : v))
 }

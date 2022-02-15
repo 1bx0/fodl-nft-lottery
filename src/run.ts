@@ -1,13 +1,23 @@
 import dotenv from 'dotenv'
 import { BigNumber } from 'ethers'
-import { readFileSync, writeFileSync } from 'fs'
+import { existsSync } from 'fs'
 import { EXCLUDE_LIST } from './constants'
 import { Criteria } from './criteria'
-import { HardcodedCriteria } from './hardcoded/hardcodedCriteria'
+import { BoatliftersCriteria } from './hardcoded/hardcodedCriteria'
 import { EthLpCriteria, MaticLpCriteria, UsdcLpCriteria } from './staking/lpCriteria'
 import { XFodlCriteria } from './staking/xFodlCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
-import { Allocation, exclude, filterZeroes, sumAllocations } from './utils'
+import {
+  Allocation,
+  computeAllocationBreakdown,
+  exclude,
+  filterZeroes,
+  loadAllocationBreakdown,
+  logBreakdown,
+  NamedAllocations,
+  storeAllocationBreakdown,
+  sumAllocations,
+} from './utils'
 
 dotenv.config()
 
@@ -20,54 +30,42 @@ const rules: Criteria[] = [
   new EthLpCriteria(ethereumSnapshotBlock),
   new UsdcLpCriteria(ethereumSnapshotBlock),
   new MaticLpCriteria(maticSnapshotBlock),
-  new HardcodedCriteria(process.env.BOATLIFTERS_SNAPSHOT_URL || ''),
+  new BoatliftersCriteria(),
 ]
 
 async function run() {
-  await Promise.all(rules.map((rule) => rule.countTickets()))
+  const fileName = `./snapshot_breakdown_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`
 
-  const allocationWithZeroes = exclude(
-    sumAllocations(...rules.flatMap((rule) => Object.values(rule.allocations))),
-    EXCLUDE_LIST
-  )
-  const allocation = filterZeroes(allocationWithZeroes)
-
-  writeFileSync(
-    `./allocation_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`,
-    JSON.stringify(Object.fromEntries(Object.entries(allocation).map(([k, v]) => [k, v.toNumber()])), null, 2),
-    'utf-8'
-  )
-
-  console.log(`owner | total | trading | closed-trade | xfodl | eth-lp | usdc-lp | matic-lp | boatlifters`)
-  console.log(
-    Object.entries(allocation)
-      .map(
-        ([owner, value]) =>
-          `${owner} | ${value.toString()} |` +
-          `${rules[0].allocations.trading[owner] || 0} | ${rules[0].allocations.closedTrade[owner] || 0} | ` +
-          `${rules[1].allocations.xFodl[owner] || 0} | ` +
-          `${rules[2].allocations.lp[owner] || 0} | ` +
-          `${rules[3].allocations.lp[owner] || 0} | ` +
-          `${rules[4].allocations.lp[owner] || 0} | ` +
-          `${rules[5].allocations.hardcoded[owner] || 0} |`
-      )
-      .join('\n')
-  )
-
-  if (process.env.RANDOM_LOTTERY_SEED) {
-    console.log(`Running a lottery with random seed: ${process.env.RANDOM_LOTTERY_SEED}`)
-    const sortedKeys = Object.keys(allocation).sort()
-    const totalTickets = Object.values(allocation).reduce((acc, v) => acc.add(v), BigNumber.from(0))
-
-    // pick random value between 0 and totalTickets - 1
-    const randomSeed = BigNumber.from(process.env.RANDOM_LOTTERY_SEED)
-    let index = randomSeed.mod(totalTickets)
-    let i = 0
-    while (index.gte(allocation[sortedKeys[i]])) index = index.sub(allocation[sortedKeys[i++]])
-    console.log(`winner: ${sortedKeys[i]}`)
+  let tickets: Allocation
+  if (existsSync(fileName)) {
+    const allocationBreakdown = loadAllocationBreakdown(fileName)
+    tickets = Object.fromEntries(Object.entries(allocationBreakdown).map(([k, v]) => [k, v.total]))
+  } else {
+    await Promise.all(rules.map((rule) => rule.countTickets()))
+    const allAllocations: NamedAllocations = Object.fromEntries(rules.flatMap((r) => Object.entries(r.allocations)))
+    tickets = filterZeroes(exclude(sumAllocations(...Object.values(allAllocations)), EXCLUDE_LIST))
+    const allocationBreakdown = computeAllocationBreakdown(tickets, allAllocations)
+    logBreakdown(allocationBreakdown)
+    storeAllocationBreakdown(allocationBreakdown, fileName)
   }
+
+  if (process.env.RANDOM_LOTTERY_SEED) console.log(`Winner is: ${runLottery(tickets)}`)
+
   console.log('All done!')
   process.exit(0)
+}
+
+function runLottery(tickets: Allocation): string {
+  console.log(`Running a lottery with random seed: ${process.env.RANDOM_LOTTERY_SEED}`)
+  const sortedKeys = Object.keys(tickets).sort()
+  const totalTickets = Object.values(tickets).reduce((acc, v) => acc.add(v), BigNumber.from(0))
+
+  // pick random value between 0 and totalTickets - 1
+  const randomSeed = BigNumber.from(process.env.RANDOM_LOTTERY_SEED)
+  let index = randomSeed.mod(totalTickets)
+  let i = 0
+  while (index.gte(tickets[sortedKeys[i]])) index = index.sub(tickets[sortedKeys[i++]])
+  return sortedKeys[i]
 }
 
 run().catch((e) => {

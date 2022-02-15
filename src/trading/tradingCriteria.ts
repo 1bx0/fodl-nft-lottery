@@ -98,24 +98,21 @@ export class TradingCriteria extends Criteria {
 
   public async countTickets() {
     console.log('Trading Criteria...')
-
+    const tag = `tax-contributions`
+    console.time(tag)
     for (let fromBlock = REGISTRY_DEPLOYMENT_BLOCK; fromBlock <= this.snapshotBlock; fromBlock += EVENTS_CHUNK_SIZE) {
       this.clearCaches()
       await this.processLogs(fromBlock, Math.min(fromBlock + EVENTS_CHUNK_SIZE, this.snapshotBlock))
+      console.timeLog(tag)
     }
   }
 
   private async processLogs(fromBlock: number, toBlock: number) {
-    const tag = `chunk ${Math.ceil((fromBlock - REGISTRY_DEPLOYMENT_BLOCK) / EVENTS_CHUNK_SIZE)}`
-    console.log(`${tag} from block: ${fromBlock} to block: ${toBlock}`)
-
-    console.time(tag)
     const logs = await this.provider.getLogs({
       fromBlock,
       toBlock,
       topics: [TRANSFER_EVENT_HASH, null, hexZeroPad(TAX_ADDRESS, 32)],
     })
-    console.timeLog(tag, `Logs to process: ${logs.length}`)
 
     const contributions = (await Promise.all(logs.map((log) => this.processTransfer(log)))).filter((e) => e != null)
     contributions.forEach((contribution) => {
@@ -128,7 +125,6 @@ export class TradingCriteria extends Criteria {
         this.allocations.closedTrade[contribution.owner] || BigNumber.from(0)
       )
     })
-    console.timeEnd(tag)
   }
 
   private async processTransfer(log: ethers.providers.Log) {
