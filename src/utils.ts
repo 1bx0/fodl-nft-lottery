@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'fs'
 import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
 
 export type Allocation = { [key: string]: BigNumber }
-export type AllocationWithBreakdown = { [key: string]: { total: BigNumber; [criteria: string]: BigNumber } }
+export type AllocationWithBreakdown = { [key: string]: Allocation }
 export type NamedAllocations = { [reason: string]: Allocation }
 export type Transfer = {
   blockNumber: number
@@ -29,13 +29,8 @@ export const sumAllocations = (...allocations: Allocation[]): Allocation => {
   return result
 }
 
-export const filterZeroes = (allocation: Allocation): Allocation =>
-  Object.fromEntries(Object.entries(allocation).filter(([_, value]) => !value.isZero()))
-
-export const exclude = (allocation: Allocation, list: string[]) => {
-  list.forEach((element) => (allocation[element.toLowerCase()] = BigNumber.from(0)))
-  return allocation
-}
+export const filterAllocation = (allocation: Allocation, filter: (k: string, v: BigNumber) => boolean): Allocation =>
+  Object.fromEntries(Object.entries(allocation).filter(([k, v]) => filter(k, v)))
 
 export const parseAddress = (paddedAddress: string) => ethers.utils.hexDataSlice(paddedAddress, 12).toLowerCase()
 
@@ -83,7 +78,7 @@ export const getBalances = async (token: Contract, addresses: Set<string>, atBlo
 
   const tag = `balances-${erc20.address}`
   console.time(tag)
-  const balances = await Promise.all(addrs.map((address) => erc20.callStatic.balanceOf(address, { blockTag: atBlock })))
+  const balances = await Promise.all(addrs.map((address) => erc20.balanceOf(address, { blockTag: atBlock })))
   console.timeEnd(tag)
   return Object.fromEntries(addrs.map((a, i) => [a, balances[i]]))
 }
@@ -142,5 +137,5 @@ export const storeAllocationBreakdown = (source: AllocationWithBreakdown, fileNa
 
 export const loadAllocationBreakdown = (fileName: string): AllocationWithBreakdown => {
   console.log(`Loading allocation from: ${fileName} ...`)
-  return JSON.parse(readFileSync(fileName, 'utf-8'), (_, v) => (v instanceof Number ? BigNumber.from(v) : v))
+  return JSON.parse(readFileSync(fileName, 'utf-8'))
 }

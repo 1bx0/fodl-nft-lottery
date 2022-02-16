@@ -1,8 +1,8 @@
 import dotenv from 'dotenv'
-import axios from 'axios'
+import { BigNumber } from 'ethers'
+import { BOATLIFTERS_LIST, TICKETS_FOR_BOATLIFTER } from '../constants'
 import { Criteria } from '../criteria'
 import { Allocation, NamedAllocations } from '../utils'
-import { BigNumber } from 'ethers'
 
 dotenv.config()
 
@@ -28,7 +28,6 @@ export class BoatliftersCriteria extends HardcodedCriteria {
   }
 
   protected async getAllocation(): Promise<Allocation> {
-    const res = await axios.get(process.env.BOATLIFTERS_SNAPSHOT_URL || '')
-    return Object.fromEntries(Object.entries(res.data).map(([k, v]) => [k.toLowerCase(), BigNumber.from(v)]))
+    return Object.fromEntries(BOATLIFTERS_LIST.map((a) => [a.toLowerCase(), BigNumber.from(TICKETS_FOR_BOATLIFTER)]))
   }
 }

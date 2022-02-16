@@ -1,17 +1,16 @@
+import axios from 'axios'
 import dotenv from 'dotenv'
 import { BigNumber } from 'ethers'
 import { existsSync } from 'fs'
 import { EXCLUDE_LIST } from './constants'
 import { Criteria } from './criteria'
 import { BoatliftersCriteria } from './hardcoded/hardcodedCriteria'
-import { EthLpCriteria, MaticLpCriteria, UsdcLpCriteria } from './staking/lpCriteria'
-import { XFodlCriteria } from './staking/xFodlCriteria'
+import { StakingCriteria } from './staking/stakingCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
 import {
   Allocation,
   computeAllocationBreakdown,
-  exclude,
-  filterZeroes,
+  filterAllocation,
   loadAllocationBreakdown,
   logBreakdown,
   NamedAllocations,
@@ -24,14 +23,8 @@ dotenv.config()
 const ethereumSnapshotBlock = Number(process.env.ETHEREUM_SNAPSHOT_BLOCK)
 const maticSnapshotBlock = Number(process.env.MATIC_SNAPSHOT_BLOCK)
 
-const rules: Criteria[] = [
-  new TradingCriteria(ethereumSnapshotBlock),
-  new XFodlCriteria(ethereumSnapshotBlock),
-  new EthLpCriteria(ethereumSnapshotBlock),
-  new UsdcLpCriteria(ethereumSnapshotBlock),
-  new MaticLpCriteria(maticSnapshotBlock),
-  new BoatliftersCriteria(),
-]
+const stakingCriteria = new StakingCriteria(ethereumSnapshotBlock, maticSnapshotBlock)
+const rules: Criteria[] = [new TradingCriteria(ethereumSnapshotBlock), stakingCriteria, new BoatliftersCriteria()]
 
 async function run() {
   const fileName = `./snapshot_breakdown_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`
@@ -39,11 +32,14 @@ async function run() {
   let tickets: Allocation
   if (existsSync(fileName)) {
     const allocationBreakdown = loadAllocationBreakdown(fileName)
-    tickets = Object.fromEntries(Object.entries(allocationBreakdown).map(([k, v]) => [k, v.total]))
+    tickets = Object.fromEntries(Object.entries(allocationBreakdown).map(([k, v]) => [k, BigNumber.from(v.total)]))
   } else {
     await Promise.all(rules.map((rule) => rule.countTickets()))
     const allAllocations: NamedAllocations = Object.fromEntries(rules.flatMap((r) => Object.entries(r.allocations)))
-    tickets = filterZeroes(exclude(sumAllocations(...Object.values(allAllocations)), EXCLUDE_LIST))
+    // Exclude addresses on the exclude list and those with 0 tickets
+    const exclude = new Set(EXCLUDE_LIST.map((a) => a.toLowerCase()))
+    const eligible = (k: string, v: BigNumber) => !v.isZero() && !exclude.has(k)
+    tickets = filterAllocation(sumAllocations(...Object.values(allAllocations)), eligible)
     const allocationBreakdown = computeAllocationBreakdown(tickets, allAllocations)
     logBreakdown(allocationBreakdown)
     storeAllocationBreakdown(allocationBreakdown, fileName)

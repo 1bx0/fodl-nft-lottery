@@ -79,6 +79,6 @@ export class XFodlCriteria extends Criteria {
 
     const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
 
-    this.allocations.xFodl = convertAllocation(minBalancesDuringLastDay, convertXFodlToTickets)
+    Object.assign(this.allocations.xFodl, convertAllocation(minBalancesDuringLastDay, convertXFodlToTickets))
   }
 }

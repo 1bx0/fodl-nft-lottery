@@ -1,22 +1,6 @@
 import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
-import {
-  BLOCKS_PER_DAY_ETHEREUM,
-  ERC20_ABI,
-  FODL_ADDRESS,
-  FODL_ADDRESS_ON_MATIC,
-  FODL_DECIMALS,
-  LP_ETH_FODL_ADDRESS,
-  LP_ETH_FODL_DEPLOYMENT_BLOCK,
-  LP_ETH_FODL_STAKING_ADDRESS,
-  LP_FODL_MATIC_ADDRESS,
-  LP_FODL_MATIC_DEPLOYMENT_BLOCK,
-  LP_FODL_MATIC_STAKING_ADDRESS,
-  LP_STAKING_ABI,
-  LP_USDC_FODL_ADDRESS,
-  LP_USDC_FODL_DEPLOYMENT_BLOCK,
-  LP_USDC_FODL_STAKING_ADDRESS,
-} from '../constants'
+import { BLOCKS_PER_DAY_ETHEREUM, ERC20_ABI, FODL_DECIMALS, LP_STAKING_ABI } from '../constants'
 import { Criteria } from '../criteria'
 import {
   convertAllocation,
@@ -32,15 +16,14 @@ import {
 
 dotenv.config()
 
-class LpCriteria extends Criteria {
+export class LpCriteria extends Criteria {
   constructor(
     snapshotBlock: number,
     lpAddress: string,
     lpDeploymentBlock: number,
     lpStakingAddress: string,
     providerUrl: string | undefined,
-    fodlTokenAddress: string,
-    allocationName: string
+    fodlTokenAddress: string
   ) {
     super(snapshotBlock)
     this.provider = new ethers.providers.WebSocketProvider(providerUrl!)
@@ -48,17 +31,15 @@ class LpCriteria extends Criteria {
     this.lpDeploymentBlock = lpDeploymentBlock
     this.lpStaking = new Contract(lpStakingAddress, LP_STAKING_ABI, this.provider)
     this.fodlToken = new Contract(fodlTokenAddress, ERC20_ABI, this.provider)
-    this.allocationName = allocationName
   }
 
-  public allocations: NamedAllocations = {}
+  public allocations: NamedAllocations = { lp: {} }
 
   private provider: providers.Provider
   private lp: Contract
   private lpDeploymentBlock: number
   private lpStaking: Contract
   private fodlToken: Contract
-  private allocationName: string
 
   public async countTickets() {
     console.log(`LP ${this.lp.address} on ${(await this.provider.getNetwork()).name} criteria...`)
@@ -90,7 +71,7 @@ class LpCriteria extends Criteria {
 
     const minBalancesDuringLastDay = getMinimumBalancesDuringLastDay(balances, lastDayTransfers)
 
-    this.allocations[this.allocationName] = convertAllocation(minBalancesDuringLastDay, convertLpToTickets)
+    Object.assign(this.allocations.lp, convertAllocation(minBalancesDuringLastDay, convertLpToTickets))
   }
 
   private async getHistoricStakingTransfers(token: Contract, fromBlock: number, toBlock: number): Promise<Transfer[]> {
@@ -120,47 +101,5 @@ class LpCriteria extends Criteria {
         amount: BigNumber.from(log.data),
       })),
     ]
-  }
-}
-
-export class EthLpCriteria extends LpCriteria {
-  constructor(snapshotBlock: number) {
-    super(
-      snapshotBlock,
-      LP_ETH_FODL_ADDRESS,
-      LP_ETH_FODL_DEPLOYMENT_BLOCK,
-      LP_ETH_FODL_STAKING_ADDRESS,
-      process.env.ETHEREUM_RPC_PROVIDER,
-      FODL_ADDRESS,
-      'fodl-eth-lp'
-    )
-  }
-}
-
-export class UsdcLpCriteria extends LpCriteria {
-  constructor(snapshotBlock: number) {
-    super(
-      snapshotBlock,
-      LP_USDC_FODL_ADDRESS,
-      LP_USDC_FODL_DEPLOYMENT_BLOCK,
-      LP_USDC_FODL_STAKING_ADDRESS,
-      process.env.ETHEREUM_RPC_PROVIDER,
-      FODL_ADDRESS,
-      'fodl-usdc-lp'
-    )
-  }
-}
-
-export class MaticLpCriteria extends LpCriteria {
-  constructor(snapshotBlock: number) {
-    super(
-      snapshotBlock,
-      LP_FODL_MATIC_ADDRESS,
-      LP_FODL_MATIC_DEPLOYMENT_BLOCK,
-      LP_FODL_MATIC_STAKING_ADDRESS,
-      process.env.MATIC_RPC_PROVIDER,
-      FODL_ADDRESS_ON_MATIC,
-      'fodl-matic-lp'
-    )
   }
 }
