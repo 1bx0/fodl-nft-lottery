@@ -4,7 +4,8 @@
   "main": "run.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node ./dist/run.js"
+    "start": "tsc && node ./dist/run.js",
+    "startPrivate": "tsc && node ./dist/runPrivate.js"
   },
   "author": "",
   "license": "ISC",

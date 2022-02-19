@@ -1,6 +1,10 @@
 import { BigNumber, Contract, ethers } from 'ethers'
 import { readFileSync, writeFileSync } from 'fs'
 import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
+import dotenv from 'dotenv'
+import { Block } from '@ethersproject/abstract-provider'
+
+dotenv.config()
 
 export type Allocation = { [key: string]: BigNumber }
 export type AllocationWithBreakdown = { [key: string]: Allocation }
@@ -138,4 +142,28 @@ export const storeAllocationBreakdown = (source: AllocationWithBreakdown, fileNa
 export const loadAllocationBreakdown = (fileName: string): AllocationWithBreakdown => {
   console.log(`Loading allocation from: ${fileName} ...`)
   return JSON.parse(readFileSync(fileName, 'utf-8'))
+}
+
+export const getFirstBlockBefore = async (target: number, rpcUrl: string) => {
+  const provider = new ethers.providers.WebSocketProvider(rpcUrl)
+  const averageBlockTime = (await provider.getNetwork()).name == 'matic' ? 2 : 15
+
+  const getBlockDiff = async (block: Block, diff: number) => {
+    // console.log(new Date(block.timestamp * 1000), block.number, diff)
+    return await provider.getBlock(block.number - diff)
+  }
+
+  let block = await provider.getBlock('latest')
+  let minDiff = Number.MAX_VALUE
+  while (Math.abs(target - block.timestamp) < minDiff) {
+    minDiff = Math.abs(target - block.timestamp)
+    let diff = (block.timestamp - target) / averageBlockTime
+    diff = diff > 0 ? Math.ceil(diff) : Math.floor(diff)
+    block = await getBlockDiff(block, diff)
+  }
+  while (target < block.timestamp) block = await getBlockDiff(block, 1)
+  while (target > block.timestamp) block = await getBlockDiff(block, -1)
+
+  // console.log('found', new Date(block.timestamp * 1000), block.number)
+  return block.number
 }
