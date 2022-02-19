@@ -2165,25 +2165,156 @@ export const EVENTS_CHUNK_SIZE = 1000000
 export const USD_DECIMALS = 8
 export const TRANSFER_EVENT_HASH = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
 
-export const BOATLIFTERS_LIST = [
-  '0xFE435D9b898701E7de8cF57f1359e201Aa0f6d77',
-  '0x031E3aCa0708C8Becf694154a30df42a0F34d3F5',
-  '0x2cc5f95d7fe51e92e351eb86648b0297cbb16f47',
-  '0x2A809c5e3131C49C801b93F830313d810Ada64A9',
-  '0xFb2f971120843ccCe44e5806DBB947A9506BcCeF',
-  '0xB443eEd9aC8F361502288844dD5f55eCFE915ef4',
-  '0x74d1Fd2285e1134b30DBCB570a181782586E8E55',
-  '0xa8Bba06237273B709f9F93F98CA763Af075eDDE0',
-  '0x70F37c9524A5d91C515c85691c1635eB4382cE21',
-  '0x87f57BF15fE9839FBE475d08111f769F289A5E18',
-  '0x78bbdEDd45C31f0AE0071FF0e0B6742C2e45B39b',
-  '0x5F144158970B53f6dCBB761e7B02B6455d05C861',
-  '0x04F1F7D5843c5dEC2D3efD2Da583377f6b1A8E8f',
-  '0xe901563Ea181cf3B75F952F92bE7da6C79B65626',
-  '0xdcd43027F408EFaE0E0309F2eBb708d631aCbEcb',
-  '0xe901563Ea181cf3B75F952F92bE7da6C79B65626',
+export const BOATLIFTERS_CONTRACT_ADDRESS = '0xDD4C2f5Cb09469E8182f93cd33FE3862587651F0'
+export const LIST_CONTRACT_ABI = [
+  {
+    inputs: [
+      {
+        internalType: 'address[]',
+        name: '_addresses',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'constructor',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'previousOwner',
+        type: 'address',
+      },
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'newOwner',
+        type: 'address',
+      },
+    ],
+    name: 'OwnershipTransferred',
+    type: 'event',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_address',
+        type: 'address',
+      },
+    ],
+    name: 'add',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address[]',
+        name: '_addresses',
+        type: 'address[]',
+      },
+    ],
+    name: 'addAll',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getAll',
+    outputs: [
+      {
+        internalType: 'address[]',
+        name: '',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_address',
+        type: 'address',
+      },
+    ],
+    name: 'remove',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address[]',
+        name: '_addresses',
+        type: 'address[]',
+      },
+    ],
+    name: 'removeAll',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address[]',
+        name: '_addresses',
+        type: 'address[]',
+      },
+    ],
+    name: 'set',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'newOwner',
+        type: 'address',
+      },
+    ],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ]
+export const BOATLIFTERS_CONTRACT_DEPLOYMENT_BLOCK = 14233795
 export const TICKETS_FOR_BOATLIFTER = 500
+
+export const SOCIALMEDIA_CONTRACT_ADDRESS = '0x437f7add2974487dD188C7fb3781993661552785'
+export const SOCIALMEDIA_CONTRACT_DEPLOYMENT_BLOCK = 14233806
+export const TICKETS_FOR_SOCIALMEDIA = 100
 
 export const EXCLUDE_LIST = [
   constants.AddressZero,

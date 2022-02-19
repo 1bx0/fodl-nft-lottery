@@ -1,10 +1,9 @@
-import axios from 'axios'
 import dotenv from 'dotenv'
 import { BigNumber } from 'ethers'
 import { existsSync } from 'fs'
 import { EXCLUDE_LIST } from './constants'
 import { Criteria } from './criteria'
-import { BoatliftersCriteria } from './hardcoded/hardcodedCriteria'
+import { BoatliftersCriteria, SocialMediaCriteria } from './hardcoded/hardcodedCriteria'
 import { StakingCriteria } from './staking/stakingCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
 import {
@@ -24,7 +23,12 @@ const ethereumSnapshotBlock = Number(process.env.ETHEREUM_SNAPSHOT_BLOCK)
 const maticSnapshotBlock = Number(process.env.MATIC_SNAPSHOT_BLOCK)
 
 const stakingCriteria = new StakingCriteria(ethereumSnapshotBlock, maticSnapshotBlock)
-const rules: Criteria[] = [new TradingCriteria(ethereumSnapshotBlock), stakingCriteria, new BoatliftersCriteria()]
+const rules: Criteria[] = [
+  new TradingCriteria(ethereumSnapshotBlock),
+  stakingCriteria,
+  new BoatliftersCriteria(ethereumSnapshotBlock),
+  new SocialMediaCriteria(ethereumSnapshotBlock),
+]
 
 async function run() {
   const fileName = `./snapshot_breakdown_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`

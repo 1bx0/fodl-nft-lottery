@@ -1,33 +1,72 @@
 import dotenv from 'dotenv'
-import { BigNumber } from 'ethers'
-import { BOATLIFTERS_LIST, TICKETS_FOR_BOATLIFTER } from '../constants'
+import { BigNumber, Contract, ethers } from 'ethers'
+import {
+  BOATLIFTERS_CONTRACT_ADDRESS,
+  BOATLIFTERS_CONTRACT_DEPLOYMENT_BLOCK,
+  LIST_CONTRACT_ABI,
+  SOCIALMEDIA_CONTRACT_ADDRESS,
+  SOCIALMEDIA_CONTRACT_DEPLOYMENT_BLOCK,
+  TICKETS_FOR_BOATLIFTER,
+  TICKETS_FOR_SOCIALMEDIA,
+} from '../constants'
 import { Criteria } from '../criteria'
-import { Allocation, NamedAllocations } from '../utils'
+import { NamedAllocations } from '../utils'
 
 dotenv.config()
 
-export abstract class HardcodedCriteria extends Criteria {
-  constructor(allocationName: string) {
-    super(0)
+abstract class SCHardcodedListCriteria extends Criteria {
+  constructor(
+    snapshotBlock: number,
+    allocationName: string,
+    address: string,
+    deploymentBlock: number,
+    tickets: number
+  ) {
+    super(snapshotBlock)
     this.allocationName = allocationName
+    const provider = new ethers.providers.WebSocketProvider(process.env.ETHEREUM_RPC_PROVIDER || '')
+    this.sc = new Contract(address, LIST_CONTRACT_ABI, provider)
+    this.deploymentBlock = deploymentBlock
+    this.tickets = tickets
   }
+
+  private allocationName: string
+  private sc: Contract
+  private deploymentBlock: number
+  private tickets: number
 
   public allocations: NamedAllocations = {}
 
-  private allocationName: string
-
   public async countTickets() {
-    this.allocations[this.allocationName] = await this.getAllocation()
+    const list: string[] = await this.sc.callStatic.getAll({
+      blockTag: this.snapshotBlock > this.deploymentBlock ? this.snapshotBlock : this.deploymentBlock + 1,
+    })
+    this.allocations[this.allocationName] = Object.fromEntries(
+      list.map((a) => [a.toLowerCase(), BigNumber.from(this.tickets)])
+    )
   }
-  protected abstract getAllocation(): Promise<Allocation>
 }
 
-export class BoatliftersCriteria extends HardcodedCriteria {
-  constructor() {
-    super('boatlifters')
+export class BoatliftersCriteria extends SCHardcodedListCriteria {
+  constructor(snapshotBlock: number) {
+    super(
+      snapshotBlock,
+      'boatlifters',
+      BOATLIFTERS_CONTRACT_ADDRESS,
+      BOATLIFTERS_CONTRACT_DEPLOYMENT_BLOCK,
+      TICKETS_FOR_BOATLIFTER
+    )
   }
+}
 
-  protected async getAllocation(): Promise<Allocation> {
-    return Object.fromEntries(BOATLIFTERS_LIST.map((a) => [a.toLowerCase(), BigNumber.from(TICKETS_FOR_BOATLIFTER)]))
+export class SocialMediaCriteria extends SCHardcodedListCriteria {
+  constructor(snapshotBlock: number) {
+    super(
+      snapshotBlock,
+      'socialmedia',
+      SOCIALMEDIA_CONTRACT_ADDRESS,
+      SOCIALMEDIA_CONTRACT_DEPLOYMENT_BLOCK,
+      TICKETS_FOR_SOCIALMEDIA
+    )
   }
 }
