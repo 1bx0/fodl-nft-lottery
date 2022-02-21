@@ -1,6 +1,6 @@
 import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
-import { BLOCKS_PER_DAY_ETHEREUM, ERC20_ABI, FODL_DECIMALS, LP_STAKING_ABI } from '../constants'
+import { BLOCKS_PER_DAY_ETHEREUM, BLOCKS_PER_DAY_MATIC, ERC20_ABI, FODL_DECIMALS, LP_STAKING_ABI } from '../constants'
 import { Criteria } from '../criteria'
 import {
   convertAllocation,
@@ -42,7 +42,10 @@ export class LpCriteria extends Criteria {
   private fodlToken: Contract
 
   public async countTickets() {
-    console.log(`LP ${this.lp.address} on ${(await this.provider.getNetwork()).name} criteria...`)
+    const network = (await this.provider.getNetwork()).name
+    console.log(`LP ${this.lp.address} on ${network} criteria...`)
+
+    const blocksPerDay = network == 'matic' ? BLOCKS_PER_DAY_MATIC : BLOCKS_PER_DAY_ETHEREUM
 
     const [lpFodlBalance, lpTotalSupply] = await Promise.all([
       this.fodlToken.callStatic.balanceOf(this.lp.address, { blockTag: this.snapshotBlock }),
@@ -57,12 +60,8 @@ export class LpCriteria extends Criteria {
     const [lpBalances, lpStakingBalances, lastDayLpTransfers, lastDayLpStakingTransfers] = await Promise.all([
       getBalances(this.lp, lpHolders, this.snapshotBlock),
       getBalances(this.lpStaking, lpHolders, this.snapshotBlock),
-      getHistoricTransfers(this.lp, this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM, this.snapshotBlock),
-      this.getHistoricStakingTransfers(
-        this.lpStaking,
-        this.snapshotBlock - BLOCKS_PER_DAY_ETHEREUM,
-        this.snapshotBlock
-      ),
+      getHistoricTransfers(this.lp, this.snapshotBlock - blocksPerDay, this.snapshotBlock),
+      this.getHistoricStakingTransfers(this.lpStaking, this.snapshotBlock - blocksPerDay, this.snapshotBlock),
     ])
 
     const balances = sumAllocations(lpBalances, lpStakingBalances)
