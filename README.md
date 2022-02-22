@@ -1,6 +1,6 @@
 # fodl-nft-lottery
 
-Configure the variables described below
+Configure the variables described below. To run the snapshot at a certain timestamp you must run all the lotteries before it.
 
 Run using `npm start`
 
@@ -16,5 +16,5 @@ ETHEREUM_RPC_PROVIDER=
 MATIC_RPC_PROVIDER=
 
 # Timestamp at which to take the snapshot (optional)
-TIMESTAMP=
+TIMESTAMP="02 14 2022 00:00:00 UTC"
 ```

@@ -2422,13 +2422,17 @@ export const LOTTERY_VRF_ABI = [
 ]
 export const FIRST_LOTTERY_TIMESTAMP = 1644796800 // new Date('Feb 14 2022 00:00:00 UTC').getTime() / 1000
 export const DAY_IN_SECONDS = 60 * 60 * 24
-export const LOTTERY_TIMESTAMPS = Array.from({ length: 25 }).map(
-  (_, i) => FIRST_LOTTERY_TIMESTAMP + i * DAY_IN_SECONDS * 3
-)
+export const AWARDS_LIST = [
+  1795, 219, 1066, 7364, 2902, 9449, 4791, 9509, 7803, 8952, 6613, 9077, 8398, 3101, 467, 8232, 8378, 2176, 3605, 6200,
+  5914, 2518, 8699, 8389,
+].map((id, i) => ({
+  id,
+  timestamp: FIRST_LOTTERY_TIMESTAMP + i * DAY_IN_SECONDS * 3,
+}))
 
 export const SUBMIT_TX_OVERRIDES = {
   maxFeePerGas: ethers.utils.parseUnits('200', 'gwei'),
   maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei'),
 }
 
-export const WINNERS: { [address: string]: number } = {}
+export const WINNERS_PATH = './lottery-winner.json'

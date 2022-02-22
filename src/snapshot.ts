@@ -1,6 +1,6 @@
 import { BigNumber, providers } from 'ethers'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { EXCLUDE_LIST, WINNERS } from './constants'
+import { AWARDS_LIST, DAY_IN_SECONDS, EXCLUDE_LIST, FIRST_LOTTERY_TIMESTAMP, WINNERS_PATH } from './constants'
 import { Criteria } from './criteria'
 import { BoatliftersCriteria, SocialMediaCriteria } from './hardcoded/hardcodedCriteria'
 import { StakingCriteria } from './staking/stakingCriteria'
@@ -33,33 +33,55 @@ export class Snapshot {
   private rules: Criteria[]
   private fileName: string
 
+  private getPreviousWinners() {
+    let previousWinners: { [address: string]: number } = {}
+    const minPrevWinners = Math.ceil((this.timestamp - FIRST_LOTTERY_TIMESTAMP) / DAY_IN_SECONDS / 3)
+    const requiredAwards = AWARDS_LIST.slice(0, minPrevWinners)
+    if (minPrevWinners == 0) previousWinners = {}
+    else if (!existsSync(WINNERS_PATH))
+      throw (
+        `For this timestamp: ${this.timestamp}, file ${WINNERS_PATH} must exist!\n` +
+        `Please run lotteries for timestamps: ${requiredAwards.map((e) => e.timestamp)}`
+      )
+    else {
+      previousWinners = JSON.parse(readFileSync(WINNERS_PATH, 'utf-8'))
+      const winners = Object.entries(previousWinners).filter(
+        ([_, award]) => AWARDS_LIST.find((e) => e.id == award)!.timestamp < this.timestamp
+      )
+      if (winners.length < minPrevWinners)
+        throw (
+          `For this timestamp: ${this.timestamp}, file ${WINNERS_PATH} must contain ` +
+          `winners for awards: ${requiredAwards.map((e) => e.id)}.\n` +
+          `However, only ${JSON.stringify(previousWinners)} was found.\n` +
+          `Please run lotteries for timestamps: ${requiredAwards
+            .filter((a) => winners.findIndex(([w, award]) => a.id == award) != -1)
+            .map((e) => e.timestamp)}`
+        )
+    }
+    return previousWinners
+  }
+
   public async getTicketAllocation() {
     let tickets: Allocation
     let allocationBreakdown: AllocationWithBreakdown
 
     if (existsSync(this.fileName)) {
       allocationBreakdown = this.loadAllocationBreakdown(this.fileName)
-      tickets = Object.fromEntries(Object.entries(allocationBreakdown).map(([k, v]) => [k, BigNumber.from(v.total)]))
+      tickets = Object.fromEntries(Object.entries(allocationBreakdown).map(([k, v]) => [k, v.total]))
     } else {
+      const previousWinners: { [address: string]: number } = this.getPreviousWinners()
       await Promise.all(this.rules.map((rule) => rule.countTickets()))
       const allAllocations: NamedAllocations = Object.fromEntries(
         this.rules.flatMap((r) => Object.entries(r.allocations))
       )
-      // Exclude addresses on the exclude list and those with 0 tickets
-      const exclude = new Set(
-        [...EXCLUDE_LIST, ...Object.keys(WINNERS).filter((w) => WINNERS[w] < this.timestamp)].map((a) =>
-          a.toLowerCase()
-        )
-      )
+      // Exclude addresses on the exclude list and the previous winners and those with 0 tickets
+      const exclude = new Set([...EXCLUDE_LIST, ...Object.keys(previousWinners)].map((a) => a.toLowerCase()))
       const eligible = (k: string, v: BigNumber) => !v.isZero() && !exclude.has(k)
       tickets = filterAllocation(sumAllocations(...Object.values(allAllocations)), eligible)
       allocationBreakdown = this.computeAllocationBreakdown(tickets, allAllocations)
-
+      this.logBreakdown(allocationBreakdown)
       this.storeAllocationBreakdown(allocationBreakdown, this.fileName)
     }
-
-    this.logBreakdown(allocationBreakdown)
-
     return { tickets, allocationBreakdown }
   }
 
@@ -94,6 +116,6 @@ export class Snapshot {
 
   private loadAllocationBreakdown(fileName: string): AllocationWithBreakdown {
     console.log(`Loading allocation from: ${fileName} ...`)
-    return JSON.parse(readFileSync(fileName, 'utf-8'))
+    return JSON.parse(readFileSync(fileName, 'utf-8'), (_, v) => (typeof v == 'number' ? BigNumber.from(v) : v))
   }
 }
