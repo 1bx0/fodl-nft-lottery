@@ -1,78 +1,96 @@
 import dotenv from 'dotenv'
 import { BigNumber } from 'ethers'
-import { existsSync } from 'fs'
-import { EXCLUDE_LIST } from './constants'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { EXCLUDE_LIST, WINNERS } from './constants'
 import { Criteria } from './criteria'
 import { BoatliftersCriteria, SocialMediaCriteria } from './hardcoded/hardcodedCriteria'
 import { StakingCriteria } from './staking/stakingCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
-import {
-  Allocation,
-  AllocationWithBreakdown,
-  computeAllocationBreakdown,
-  filterAllocation,
-  getFirstBlockBefore,
-  loadAllocationBreakdown,
-  logBreakdown,
-  NamedAllocations,
-  storeAllocationBreakdown,
-  sumAllocations,
-} from './utils'
+import { Allocation, AllocationWithBreakdown, filterAllocation, NamedAllocations, sumAllocations } from './utils'
 
 dotenv.config()
 
-export async function snapshot() {
-  // Date from timestamp or last midnight
-  const date = new Date(process.env.TIMESTAMP || new Date().toDateString())
-  const timestamp = date.getTime() / 1000
-  const [ethereumSnapshotBlock, maticSnapshotBlock] = await Promise.all([
-    getFirstBlockBefore(timestamp, process.env.ETHEREUM_RPC_PROVIDER || ''),
-    getFirstBlockBefore(timestamp, process.env.MATIC_RPC_PROVIDER || ''),
-  ])
+export class Snapshot {
+  constructor(private timestamp: number, private ethereumSnapshotBlock: number, private maticSnapshotBlock: number) {
+    console.log(
+      `Creating snapshot at: ${new Date(timestamp * 1000)} (${timestamp}) \n` +
+        `ETH block number: ${ethereumSnapshotBlock} \n` +
+        `MATIC block number: ${maticSnapshotBlock}`
+    )
+    this.fileName = `./snapshot_breakdown_${this.timestamp}_ETH-${this.ethereumSnapshotBlock}_MATIC-${this.maticSnapshotBlock}.json`
 
-  console.log(`Taking snapshot at ${date} (${timestamp}) ETH:${ethereumSnapshotBlock} MATIC:${maticSnapshotBlock}`)
-
-  const fileName = `./snapshot_breakdown_${timestamp}_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`
-
-  const stakingCriteria = new StakingCriteria(ethereumSnapshotBlock, maticSnapshotBlock)
-  const rules: Criteria[] = [
-    new TradingCriteria(ethereumSnapshotBlock),
-    stakingCriteria,
-    new BoatliftersCriteria(ethereumSnapshotBlock),
-    new SocialMediaCriteria(ethereumSnapshotBlock),
-  ]
-
-  let tickets: Allocation
-  let allocationBreakdown: AllocationWithBreakdown
-
-  if (existsSync(fileName)) {
-    allocationBreakdown = loadAllocationBreakdown(fileName)
-    tickets = Object.fromEntries(Object.entries(allocationBreakdown).map(([k, v]) => [k, BigNumber.from(v.total)]))
-  } else {
-    await Promise.all(rules.map((rule) => rule.countTickets()))
-    const allAllocations: NamedAllocations = Object.fromEntries(rules.flatMap((r) => Object.entries(r.allocations)))
-    // Exclude addresses on the exclude list and those with 0 tickets
-    const exclude = new Set(EXCLUDE_LIST.map((a) => a.toLowerCase()))
-    const eligible = (k: string, v: BigNumber) => !v.isZero() && !exclude.has(k)
-    tickets = filterAllocation(sumAllocations(...Object.values(allAllocations)), eligible)
-    allocationBreakdown = computeAllocationBreakdown(tickets, allAllocations)
-    storeAllocationBreakdown(allocationBreakdown, fileName)
+    this.rules = [
+      new TradingCriteria(this.ethereumSnapshotBlock),
+      new StakingCriteria(this.ethereumSnapshotBlock, this.maticSnapshotBlock),
+      new BoatliftersCriteria(this.ethereumSnapshotBlock),
+      new SocialMediaCriteria(this.ethereumSnapshotBlock),
+    ]
   }
 
-  logBreakdown(allocationBreakdown)
+  private rules: Criteria[]
+  private fileName: string
 
-  return { tickets, allocationBreakdown, timestamp }
-}
+  public async getTicketAllocation() {
+    let tickets: Allocation
+    let allocationBreakdown: AllocationWithBreakdown
 
-export function runLottery(tickets: Allocation, randSeed: string | undefined): string {
-  console.log(`Running a lottery with random seed: ${randSeed}`)
-  const sortedKeys = Object.keys(tickets).sort()
-  const totalTickets = Object.values(tickets).reduce((acc, v) => acc.add(v), BigNumber.from(0))
+    if (existsSync(this.fileName)) {
+      allocationBreakdown = this.loadAllocationBreakdown(this.fileName)
+      tickets = Object.fromEntries(Object.entries(allocationBreakdown).map(([k, v]) => [k, BigNumber.from(v.total)]))
+    } else {
+      await Promise.all(this.rules.map((rule) => rule.countTickets()))
+      const allAllocations: NamedAllocations = Object.fromEntries(
+        this.rules.flatMap((r) => Object.entries(r.allocations))
+      )
+      // Exclude addresses on the exclude list and those with 0 tickets
+      const exclude = new Set(
+        [...EXCLUDE_LIST, ...Object.keys(WINNERS).filter((w) => WINNERS[w] < this.timestamp)].map((a) =>
+          a.toLowerCase()
+        )
+      )
+      const eligible = (k: string, v: BigNumber) => !v.isZero() && !exclude.has(k)
+      tickets = filterAllocation(sumAllocations(...Object.values(allAllocations)), eligible)
+      allocationBreakdown = this.computeAllocationBreakdown(tickets, allAllocations)
 
-  // pick random value between 0 and totalTickets - 1
-  const randomSeed = BigNumber.from(randSeed)
-  let index = randomSeed.mod(totalTickets)
-  let i = 0
-  while (index.gte(tickets[sortedKeys[i]])) index = index.sub(tickets[sortedKeys[i++]])
-  return sortedKeys[i]
+      this.storeAllocationBreakdown(allocationBreakdown, this.fileName)
+    }
+
+    this.logBreakdown(allocationBreakdown)
+
+    return { tickets, allocationBreakdown }
+  }
+
+  private computeAllocationBreakdown(totals: Allocation, as: NamedAllocations): AllocationWithBreakdown {
+    return Object.fromEntries(
+      Object.entries(totals).map(([k, v]) => [
+        k,
+        { total: v, ...Object.fromEntries(Object.entries(as).map(([n, a]) => [n, a[k] || BigNumber.from(0)])) },
+      ])
+    )
+  }
+
+  private logBreakdown(allocationWithBreakdown: AllocationWithBreakdown) {
+    const critertia = Object.keys(Object.values(allocationWithBreakdown)[0]).sort()
+    console.log(`owner | ${critertia.join(' | ')}`)
+    console.log(
+      Object.entries(allocationWithBreakdown)
+        .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c]).join(' | ')}`)
+        .join('\n')
+    )
+  }
+
+  private storeAllocationBreakdown(source: AllocationWithBreakdown, fileName: string) {
+    console.log(`Storing allocation to: ${fileName} ...`)
+
+    writeFileSync(
+      fileName,
+      JSON.stringify(source, (_, v) => (v.type! == 'BigNumber' ? BigNumber.from(v.hex).toNumber() : v), 2),
+      'utf-8'
+    )
+  }
+
+  private loadAllocationBreakdown(fileName: string): AllocationWithBreakdown {
+    console.log(`Loading allocation from: ${fileName} ...`)
+    return JSON.parse(readFileSync(fileName, 'utf-8'))
+  }
 }

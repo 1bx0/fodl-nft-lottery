@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { BigNumber, constants } from 'ethers'
+import { BigNumber, constants, ethers } from 'ethers'
 
 dotenv.config()
 
@@ -2324,4 +2324,114 @@ export const EXCLUDE_LIST = [
   RARI_XFODL_ADDRESS,
   '0x872c67dd383db7b7e9bc1800546f1ae715a0bc0c', // Team LP Address
   '0xf0c8c8b7cece4a5fb9010db52649e3ef3dc1a3e6', // Team LP Address
+  '0xd409cea9dd8db30504168063953ce1fa20748cab', // Opt-out
 ]
+
+export const LOTTERY_VRF_ADDRESS = '0x89e1d5607f813AFaEb9EC6ec3F3b8972D40AB10F'
+export const LOTTERY_VRF_ABI = [
+  {
+    inputs: [
+      { internalType: 'address', name: '_coordinator', type: 'address' },
+      { internalType: 'address', name: '_link', type: 'address' },
+      { internalType: 'bytes32', name: '_keyHash', type: 'bytes32' },
+      { internalType: 'uint256', name: '_fee', type: 'uint256' },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'constructor',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'uint256', name: 'day', type: 'uint256' },
+      { indexed: false, internalType: 'bytes32', name: 'requestId', type: 'bytes32' },
+      { indexed: false, internalType: 'uint256', name: 'number', type: 'uint256' },
+    ],
+    name: 'NumberDrawn',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'address', name: 'previousOwner', type: 'address' },
+      { indexed: true, internalType: 'address', name: 'newOwner', type: 'address' },
+    ],
+    name: 'OwnershipTransferred',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'uint256', name: 'day', type: 'uint256' },
+      { indexed: false, internalType: 'bytes32', name: 'requestId', type: 'bytes32' },
+    ],
+    name: 'RequestSent',
+    type: 'event',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'draw',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'day', type: 'uint256' }],
+    name: 'getRandomNumber',
+    outputs: [{ internalType: 'bytes32', name: 'requestId', type: 'bytes32' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'bytes32', name: 'requestId', type: 'bytes32' },
+      { internalType: 'uint256', name: 'randomness', type: 'uint256' },
+    ],
+    name: 'rawFulfillRandomness',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  { inputs: [], name: 'renounceOwnership', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  {
+    inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+    name: 'requestIdToDay',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'newOwner', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'erc20', type: 'address' }],
+    name: 'withdrawERC20',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  { inputs: [], name: 'withdrawETH', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [], name: 'withdrawLink', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+]
+export const FIRST_LOTTERY_TIMESTAMP = 1644796800 // new Date('Feb 14 2022 00:00:00 UTC').getTime() / 1000
+export const DAY_IN_SECONDS = 60 * 60 * 24
+export const LOTTERY_TIMESTAMPS = Array.from({ length: 25 }).map(
+  (_, i) => FIRST_LOTTERY_TIMESTAMP + i * DAY_IN_SECONDS * 3
+)
+
+export const SUBMIT_TX_OVERRIDES = {
+  maxFeePerGas: ethers.utils.parseUnits('200', 'gwei'),
+  maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei'),
+}
+
+export const WINNERS: { [address: string]: number } = {}

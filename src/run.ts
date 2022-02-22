@@ -1,12 +1,22 @@
 import dotenv from 'dotenv'
-import { runLottery, snapshot } from './snapshot'
+import { Lottery } from './lottery'
+import { Snapshot } from './snapshot'
+import { getFirstBlockBefore, getTimestampForSnapshot } from './utils'
 
 dotenv.config()
 
 export async function run() {
-  const { tickets } = await snapshot()
+  const timestamp = getTimestampForSnapshot()
+  const [ethereumSnapshotBlock, maticSnapshotBlock] = await Promise.all([
+    getFirstBlockBefore(timestamp, process.env.ETHEREUM_RPC_PROVIDER || ''),
+    getFirstBlockBefore(timestamp, process.env.MATIC_RPC_PROVIDER || ''),
+  ])
+  const snapshot = new Snapshot(timestamp, ethereumSnapshotBlock, maticSnapshotBlock)
+  const lottery = new Lottery(timestamp, ethereumSnapshotBlock)
 
-  if (process.env.RANDOM_LOTTERY_SEED) console.log(`Winner is: ${runLottery(tickets, process.env.RANDOM_LOTTERY_SEED)}`)
+  const { tickets } = await snapshot.getTicketAllocation()
+
+  await lottery.runLottery(tickets)
 
   console.log('All done!')
   process.exit(0)

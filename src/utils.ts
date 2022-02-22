@@ -1,8 +1,7 @@
-import { BigNumber, Contract, ethers } from 'ethers'
-import { readFileSync, writeFileSync } from 'fs'
-import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
-import dotenv from 'dotenv'
 import { Block } from '@ethersproject/abstract-provider'
+import dotenv from 'dotenv'
+import { BigNumber, Contract, ethers } from 'ethers'
+import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
 
 dotenv.config()
 
@@ -102,8 +101,10 @@ export const getMinimumBalancesDuringLastDay = (balances: Allocation, unsortedTr
     const blockNumber = transfers[i].blockNumber
     while (i < transfers.length && blockNumber == transfers[i].blockNumber) {
       const t = transfers[i]
-      balances[t.from] = balances[t.from].add(t.amount)
-      balances[t.to] = balances[t.to].sub(t.amount)
+      if (!t.amount.isZero()) {
+        balances[t.from] = balances[t.from].add(t.amount)
+        balances[t.to] = balances[t.to].sub(t.amount)
+      }
       i++
     }
     updateMinBalances(balances)
@@ -118,31 +119,6 @@ export const computeAllocationBreakdown = (totals: Allocation, as: NamedAllocati
       { total: v, ...Object.fromEntries(Object.entries(as).map(([n, a]) => [n, a[k] || BigNumber.from(0)])) },
     ])
   )
-
-export const logBreakdown = (allocationWithBreakdown: AllocationWithBreakdown) => {
-  const critertia = Object.keys(Object.values(allocationWithBreakdown)[0]).sort()
-  console.log(`owner | ${critertia.join(' | ')}`)
-  console.log(
-    Object.entries(allocationWithBreakdown)
-      .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c]).join(' | ')}`)
-      .join('\n')
-  )
-}
-
-export const storeAllocationBreakdown = (source: AllocationWithBreakdown, fileName: string) => {
-  console.log(`Storing allocation to: ${fileName} ...`)
-
-  writeFileSync(
-    fileName,
-    JSON.stringify(source, (_, v) => (v.type! == 'BigNumber' ? BigNumber.from(v.hex).toNumber() : v), 2),
-    'utf-8'
-  )
-}
-
-export const loadAllocationBreakdown = (fileName: string): AllocationWithBreakdown => {
-  console.log(`Loading allocation from: ${fileName} ...`)
-  return JSON.parse(readFileSync(fileName, 'utf-8'))
-}
 
 export const getFirstBlockBefore = async (target: number, rpcUrl: string) => {
   const provider = new ethers.providers.WebSocketProvider(rpcUrl)
@@ -167,3 +143,7 @@ export const getFirstBlockBefore = async (target: number, rpcUrl: string) => {
   // console.log('found', new Date(block.timestamp * 1000), block.number)
   return block.number
 }
+
+// Date from timestamp or last midnight
+export const getTimestampForSnapshot = () =>
+  Math.floor(new Date(process.env.TIMESTAMP || new Date().toDateString()).getTime() / 1000)
