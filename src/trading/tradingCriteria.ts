@@ -1,4 +1,3 @@
-import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import { hexZeroPad } from 'ethers/lib/utils'
 import {
@@ -9,12 +8,12 @@ import {
   CLOSED_TRADE_BONUS,
   CLOSED_TRADE_MIN_CONTRIBUTION,
   COMP_ADDRESS,
-  REGISTRY_DEPLOYMENT_BLOCK,
   ERC20_ABI,
   ETH_ADDRESS,
   EVENTS_CHUNK_SIZE,
   FODL_REGISTRY_ABI,
   FODL_REGISTRY_ADDRESS,
+  REGISTRY_DEPLOYMENT_BLOCK,
   STK_AAVE_ADDRESS,
   TAX_ADDRESS,
   TRANSFER_EVENT_HASH,
@@ -26,8 +25,6 @@ import {
 import { Criteria } from '../criteria'
 import { NamedAllocations, parseAddress } from '../utils'
 
-dotenv.config()
-
 /*
  * This rule allocates tickets based on USD contributed to the tax wallet. 1 USD = 1 ticket.
  * A bonus of 50 tickets is given for every trade closed with more than 5 USD contribution.
@@ -35,9 +32,8 @@ dotenv.config()
  * splitting his position into a closed one and one that remains open.
  */
 export class TradingCriteria extends Criteria {
-  constructor(snapshotBlock: number) {
+  constructor(private provider: providers.Provider, snapshotBlock: number) {
     super(snapshotBlock)
-    this.provider = new providers.WebSocketProvider(process.env.ETHEREUM_RPC_PROVIDER!)
     this.priceFeed = new ethers.Contract(CHAIN_LINK_FEED_ADDRESS, CHAIN_LINK_FEED_ABI, this.provider)
     this.registry = new ethers.Contract(FODL_REGISTRY_ADDRESS, FODL_REGISTRY_ABI, this.provider)
   }
@@ -46,7 +42,6 @@ export class TradingCriteria extends Criteria {
 
   private priceFeed: Contract
   private registry: Contract
-  private provider: providers.Provider
 
   private ownersCache: { [ownerAtBlock: string]: string } = {}
   private pricesCache: { [priceAtBlock: string]: BigNumber } = {}

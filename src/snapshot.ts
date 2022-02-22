@@ -1,5 +1,4 @@
-import dotenv from 'dotenv'
-import { BigNumber } from 'ethers'
+import { BigNumber, providers } from 'ethers'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { EXCLUDE_LIST, WINNERS } from './constants'
 import { Criteria } from './criteria'
@@ -8,22 +7,26 @@ import { StakingCriteria } from './staking/stakingCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
 import { Allocation, AllocationWithBreakdown, filterAllocation, NamedAllocations, sumAllocations } from './utils'
 
-dotenv.config()
-
 export class Snapshot {
-  constructor(private timestamp: number, private ethereumSnapshotBlock: number, private maticSnapshotBlock: number) {
+  constructor(
+    private timestamp: number,
+    ethProvider: providers.Provider,
+    ethereumSnapshotBlock: number,
+    maticProvider: providers.Provider,
+    maticSnapshotBlock: number
+  ) {
     console.log(
       `Creating snapshot at: ${new Date(timestamp * 1000)} (${timestamp}) \n` +
         `ETH block number: ${ethereumSnapshotBlock} \n` +
         `MATIC block number: ${maticSnapshotBlock}`
     )
-    this.fileName = `./snapshot_breakdown_${this.timestamp}_ETH-${this.ethereumSnapshotBlock}_MATIC-${this.maticSnapshotBlock}.json`
+    this.fileName = `./snapshot_breakdown_${this.timestamp}_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`
 
     this.rules = [
-      new TradingCriteria(this.ethereumSnapshotBlock),
-      new StakingCriteria(this.ethereumSnapshotBlock, this.maticSnapshotBlock),
-      new BoatliftersCriteria(this.ethereumSnapshotBlock),
-      new SocialMediaCriteria(this.ethereumSnapshotBlock),
+      new TradingCriteria(ethProvider, ethereumSnapshotBlock),
+      new StakingCriteria(ethProvider, ethereumSnapshotBlock, maticProvider, maticSnapshotBlock),
+      new BoatliftersCriteria(ethProvider, ethereumSnapshotBlock),
+      new SocialMediaCriteria(ethProvider, ethereumSnapshotBlock),
     ]
   }
 

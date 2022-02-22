@@ -1,9 +1,6 @@
 import { Block } from '@ethersproject/abstract-provider'
-import dotenv from 'dotenv'
-import { BigNumber, Contract, ethers } from 'ethers'
+import { BigNumber, Contract, ethers, providers } from 'ethers'
 import { ERC20_ABI, EVENTS_CHUNK_SIZE } from './constants'
-
-dotenv.config()
 
 export type Allocation = { [key: string]: BigNumber }
 export type AllocationWithBreakdown = { [key: string]: Allocation }
@@ -120,8 +117,7 @@ export const computeAllocationBreakdown = (totals: Allocation, as: NamedAllocati
     ])
   )
 
-export const getFirstBlockBefore = async (target: number, rpcUrl: string) => {
-  const provider = new ethers.providers.WebSocketProvider(rpcUrl)
+export const getBlockBefore = async (target: number, provider: providers.Provider) => {
   const averageBlockTime = (await provider.getNetwork()).name == 'matic' ? 2 : 15
 
   const getBlockDiff = async (block: Block, diff: number) => {
@@ -145,5 +141,5 @@ export const getFirstBlockBefore = async (target: number, rpcUrl: string) => {
 }
 
 // Date from timestamp or last midnight
-export const getTimestampForSnapshot = () =>
-  Math.floor(new Date(process.env.TIMESTAMP || new Date().toDateString()).getTime() / 1000)
+export const getTimestampOrMidnight = (timestamp: string | undefined) =>
+  Math.floor(new Date(timestamp || new Date().toDateString()).getTime() / 1000)

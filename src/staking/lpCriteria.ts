@@ -1,4 +1,3 @@
-import dotenv from 'dotenv'
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import { BLOCKS_PER_DAY_ETHEREUM, BLOCKS_PER_DAY_MATIC, ERC20_ABI, FODL_DECIMALS, LP_STAKING_ABI } from '../constants'
 import { Criteria } from '../criteria'
@@ -14,30 +13,24 @@ import {
   Transfer,
 } from '../utils'
 
-dotenv.config()
-
 export class LpCriteria extends Criteria {
   constructor(
     snapshotBlock: number,
     lpAddress: string,
-    lpDeploymentBlock: number,
+    private lpDeploymentBlock: number,
     lpStakingAddress: string,
-    providerUrl: string | undefined,
+    private provider: providers.Provider,
     fodlTokenAddress: string
   ) {
     super(snapshotBlock)
-    this.provider = new ethers.providers.WebSocketProvider(providerUrl!)
     this.lp = new Contract(lpAddress, ERC20_ABI, this.provider)
-    this.lpDeploymentBlock = lpDeploymentBlock
     this.lpStaking = new Contract(lpStakingAddress, LP_STAKING_ABI, this.provider)
     this.fodlToken = new Contract(fodlTokenAddress, ERC20_ABI, this.provider)
   }
 
   public allocations: NamedAllocations = { lp: {} }
 
-  private provider: providers.Provider
   private lp: Contract
-  private lpDeploymentBlock: number
   private lpStaking: Contract
   private fodlToken: Contract
 

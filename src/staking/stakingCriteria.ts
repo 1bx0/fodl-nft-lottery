@@ -1,4 +1,4 @@
-import dotenv from 'dotenv'
+import { providers } from 'ethers'
 import {
   FODL_ADDRESS,
   FODL_ADDRESS_ON_MATIC,
@@ -17,19 +17,22 @@ import { NamedAllocations } from '../utils'
 import { LpCriteria } from './lpCriteria'
 import { XFodlCriteria } from './xFodlCriteria'
 
-dotenv.config()
-
 export class StakingCriteria extends Criteria {
-  constructor(ethSnapshotBlock: number, maticSnapshotBlock: number) {
+  constructor(
+    ethProvider: providers.Provider,
+    ethSnapshotBlock: number,
+    maticProvider: providers.Provider,
+    maticSnapshotBlock: number
+  ) {
     super(ethSnapshotBlock)
-    this.xFodl = new XFodlCriteria(ethSnapshotBlock)
+    this.xFodl = new XFodlCriteria(ethProvider, ethSnapshotBlock)
 
     this.ethLp = new LpCriteria(
       ethSnapshotBlock,
       LP_ETH_FODL_ADDRESS,
       LP_ETH_FODL_DEPLOYMENT_BLOCK,
       LP_ETH_FODL_STAKING_ADDRESS,
-      process.env.ETHEREUM_RPC_PROVIDER,
+      ethProvider,
       FODL_ADDRESS
     )
 
@@ -38,7 +41,7 @@ export class StakingCriteria extends Criteria {
       LP_USDC_FODL_ADDRESS,
       LP_USDC_FODL_DEPLOYMENT_BLOCK,
       LP_USDC_FODL_STAKING_ADDRESS,
-      process.env.ETHEREUM_RPC_PROVIDER,
+      ethProvider,
       FODL_ADDRESS
     )
 
@@ -47,7 +50,7 @@ export class StakingCriteria extends Criteria {
       LP_FODL_MATIC_ADDRESS,
       LP_FODL_MATIC_DEPLOYMENT_BLOCK,
       LP_FODL_MATIC_STAKING_ADDRESS,
-      process.env.MATIC_RPC_PROVIDER,
+      maticProvider,
       FODL_ADDRESS_ON_MATIC
     )
 

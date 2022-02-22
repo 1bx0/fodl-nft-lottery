@@ -1,5 +1,4 @@
-import dotenv from 'dotenv'
-import { BigNumber, Contract, ethers } from 'ethers'
+import { BigNumber, Contract, providers } from 'ethers'
 import {
   BOATLIFTERS_CONTRACT_ADDRESS,
   BOATLIFTERS_CONTRACT_DEPLOYMENT_BLOCK,
@@ -12,10 +11,9 @@ import {
 import { Criteria } from '../criteria'
 import { NamedAllocations } from '../utils'
 
-dotenv.config()
-
 abstract class SCHardcodedListCriteria extends Criteria {
   constructor(
+    provider: providers.Provider,
     snapshotBlock: number,
     allocationName: string,
     address: string,
@@ -24,7 +22,6 @@ abstract class SCHardcodedListCriteria extends Criteria {
   ) {
     super(snapshotBlock)
     this.allocationName = allocationName
-    const provider = new ethers.providers.WebSocketProvider(process.env.ETHEREUM_RPC_PROVIDER || '')
     this.sc = new Contract(address, LIST_CONTRACT_ABI, provider)
     this.deploymentBlock = deploymentBlock
     this.tickets = tickets
@@ -48,8 +45,9 @@ abstract class SCHardcodedListCriteria extends Criteria {
 }
 
 export class BoatliftersCriteria extends SCHardcodedListCriteria {
-  constructor(snapshotBlock: number) {
+  constructor(provider: providers.Provider, snapshotBlock: number) {
     super(
+      provider,
       snapshotBlock,
       'boatlifters',
       BOATLIFTERS_CONTRACT_ADDRESS,
@@ -60,8 +58,9 @@ export class BoatliftersCriteria extends SCHardcodedListCriteria {
 }
 
 export class SocialMediaCriteria extends SCHardcodedListCriteria {
-  constructor(snapshotBlock: number) {
+  constructor(provider: providers.Provider, snapshotBlock: number) {
     super(
+      provider,
       snapshotBlock,
       'socialmedia',
       SOCIALMEDIA_CONTRACT_ADDRESS,

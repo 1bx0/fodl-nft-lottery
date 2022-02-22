@@ -1,13 +1,12 @@
 import dotenv from 'dotenv'
-import { BigNumber, Contract, ethers, Wallet } from 'ethers'
+import { BigNumber, Contract, providers, Wallet } from 'ethers'
 import { LOTTERY_TIMESTAMPS, LOTTERY_VRF_ABI, LOTTERY_VRF_ADDRESS, SUBMIT_TX_OVERRIDES } from './constants'
 import { Allocation } from './utils'
 
 dotenv.config()
 
 export class Lottery {
-  constructor(private timestamp: number, private snapshotBlock: number) {
-    const provider = new ethers.providers.WebSocketProvider(process.env.ETHEREUM_RPC_PROVIDER || '')
+  constructor(private timestamp: number, provider: providers.Provider, private snapshotBlock: number) {
     this.signer = new Wallet(process.env.SK || '', provider)
     this.vrf = new Contract(LOTTERY_VRF_ADDRESS, LOTTERY_VRF_ABI, provider)
   }

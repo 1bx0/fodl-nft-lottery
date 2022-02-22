@@ -1,7 +1,4 @@
-import dotenv from 'dotenv'
 import { BigNumber, constants, ethers } from 'ethers'
-
-dotenv.config()
 
 export const COMP_ADDRESS = '0xc00e94Cb662C3520282E6f5717214004A7f26888'
 export const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
