@@ -2435,4 +2435,4 @@ export const SUBMIT_TX_OVERRIDES = {
   maxPriorityFeePerGas: ethers.utils.parseUnits('2', 'gwei'),
 }
 
-export const WINNERS_PATH = './lottery-winner.json'
+export const WINNERS_PATH = './data/lottery-winner.json'

@@ -68,7 +68,7 @@ export class Lottery {
     const tx = await this.vrf.connect(this.signer).getRandomNumber(this.timestamp, SUBMIT_TX_OVERRIDES)
     console.log(`Sent transaction to request random seed: ${tx.hash} ...`)
     const receipt = await tx.wait()
-    console.log(`Transaction to request random seed confirmed: ${receipt.hash}`)
+    console.log(`Transaction to request random seed confirmed: ${receipt.transactionHash}`)
   }
 
   private async getPendingRequests() {
