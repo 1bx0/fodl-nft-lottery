@@ -20,7 +20,7 @@ export class Snapshot {
         `ETH block number: ${ethereumSnapshotBlock} \n` +
         `MATIC block number: ${maticSnapshotBlock}`
     )
-    this.fileName = `./snapshot_breakdown_${this.timestamp}_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`
+    this.fileName = `./data/snapshot_breakdown_${timestamp}_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`
 
     this.rules = [
       new TradingCriteria(ethProvider, ethereumSnapshotBlock),

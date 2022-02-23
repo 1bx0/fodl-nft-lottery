@@ -4,7 +4,8 @@
   "main": "run.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node ./dist/run.js"
+    "start": "tsc && node ./dist/run.js",
+    "docker": "docker build . -t lottery && docker run --env-file=.env --mount type=bind,source=\"$(pwd)\"/data,target=/run/data lottery"
   },
   "author": "",
   "license": "ISC",

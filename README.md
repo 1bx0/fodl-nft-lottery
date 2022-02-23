@@ -2,7 +2,7 @@
 
 Configure the variables described below. To run the snapshot at a certain timestamp you must run all the lotteries before it.
 
-Run using `npm start`
+Run using `npm run docker`
 
 ## Environment variables
 
