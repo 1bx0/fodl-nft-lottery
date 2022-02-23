@@ -1,8 +1,9 @@
+import axios from 'axios'
 import dotenv from 'dotenv'
-import { ethers } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 import { Lottery } from './lottery'
 import { Snapshot } from './snapshot'
-import { getBlockBefore, getTimestampOrMidnight } from './utils'
+import { AllocationWithBreakdown, getBlockBefore, getTimestampOrMidnight } from './utils'
 
 dotenv.config()
 
@@ -21,12 +22,33 @@ export async function run() {
   const snapshot = new Snapshot(timestamp, ethProvider, ethereumSnapshotBlock, maticProvider, maticSnapshotBlock)
   const lottery = new Lottery(timestamp, ethProvider, ethereumSnapshotBlock)
 
-  const { tickets } = await snapshot.getTicketAllocation()
+  const { tickets, allocationBreakdown } = await snapshot.getTicketAllocation()
 
-  await lottery.runLottery(tickets)
+  await publishBreakdown(timestamp, allocationBreakdown)
+
+  const winners = await lottery.runLottery(tickets)
+
+  await publishWinners(winners)
 
   console.log('All done!')
   process.exit(0)
+}
+const publishBreakdown = async (timestamp: number, breakdown: AllocationWithBreakdown) => {
+  if (!process.env.OPERATOR) return
+  console.log(`Publishing allocation to backend!...`)
+  await axios.post(
+    `https://api.fodl.finance/snapshot/${timestamp}`,
+    JSON.parse(JSON.stringify(breakdown, (_, v) => (v.type! == 'BigNumber' ? BigNumber.from(v.hex).toNumber() : v))),
+    { headers: { 'x-forwarded-for': process.env.OPERATOR || '' } }
+  )
+}
+
+const publishWinners = async (winners: { [address: string]: number }) => {
+  if (!process.env.OPERATOR) return
+  console.log(`Publishing winners to backend!...`)
+  await axios.post(`https://api.fodl.finance/nftGiveawayWinners/`, winners, {
+    headers: { 'x-forwarded-for': process.env.OPERATOR || '' },
+  })
 }
 
 run().catch((e) => {
