@@ -89,7 +89,14 @@ export class Snapshot {
     return Object.fromEntries(
       Object.entries(totals).map(([k, v]) => [
         k,
-        { total: v, ...Object.fromEntries(Object.entries(as).map(([n, a]) => [n, a[k] || BigNumber.from(0)])) },
+        {
+          total: v,
+          ...Object.fromEntries(
+            Object.entries(as)
+              .map(([n, a]: [string, Allocation]) => [n, a[k] || BigNumber.from(0)])
+              .filter(([_, v]) => !(v as BigNumber).isZero())
+          ),
+        },
       ])
     )
   }
