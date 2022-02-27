@@ -114,7 +114,7 @@ export class Snapshot {
       'boatlifters',
       'socialmedia',
     ]
-    console.log(`owner ${critertia.join(' |')}`)
+    console.log(`owner | ${critertia.join(' | ')}`)
     console.log(
       Object.entries(allocationWithBreakdown)
         .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c] || 0).join(' | ')}`)
