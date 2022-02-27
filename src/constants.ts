@@ -1,4 +1,5 @@
 import { BigNumber, constants, ethers } from 'ethers'
+import { dateToSeconds } from './utils'
 
 export const COMP_ADDRESS = '0xc00e94Cb662C3520282E6f5717214004A7f26888'
 export const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
@@ -2420,15 +2421,35 @@ export const LOTTERY_VRF_ABI = [
   { inputs: [], name: 'withdrawETH', outputs: [], stateMutability: 'nonpayable', type: 'function' },
   { inputs: [], name: 'withdrawLink', outputs: [], stateMutability: 'nonpayable', type: 'function' },
 ]
-export const FIRST_LOTTERY_TIMESTAMP = 1644796800 // new Date('Feb 14 2022 00:00:00 UTC').getTime() / 1000
+export const FIRST_LOTTERY_TIMESTAMP = dateToSeconds('Feb 14 2022 00:00:00 UTC')
 export const DAY_IN_SECONDS = 60 * 60 * 24
 export const AWARDS_LIST = [
-  1795, 219, 1066, 7364, 2902, 9449, 4791, 9509, 7803, 8952, 6613, 9077, 8398, 3101, 467, 8232, 8378, 2176, 3605, 6200,
-  5914, 2518, 8699, 8389,
-].map((id, i) => ({
-  id,
-  timestamp: FIRST_LOTTERY_TIMESTAMP + i * DAY_IN_SECONDS * 3,
-}))
+  { id: 1795, timestamp: dateToSeconds('2022 02 14 00:00:00 UTC') },
+  { id: 219, timestamp: dateToSeconds('2022 02 17 00:00:00 UTC') },
+  { id: 1066, timestamp: dateToSeconds('2022 02 20 00:00:00 UTC') },
+  { id: 7364, timestamp: dateToSeconds('2022 02 23 00:00:00 UTC') },
+  { id: 2902, timestamp: dateToSeconds('2022 02 27 00:00:00 UTC') },
+  { id: 9449, timestamp: dateToSeconds('2022 03 02 00:00:00 UTC') },
+  { id: 4791, timestamp: dateToSeconds('2022 03 05 00:00:00 UTC') },
+  { id: 9509, timestamp: dateToSeconds('2022 03 08 00:00:00 UTC') },
+  { id: 7803, timestamp: dateToSeconds('2022 03 11 00:00:00 UTC') },
+  { id: 8952, timestamp: dateToSeconds('2022 03 14 00:00:00 UTC') },
+  { id: 6613, timestamp: dateToSeconds('2022 03 17 00:00:00 UTC') },
+  { id: 9077, timestamp: dateToSeconds('2022 03 20 00:00:00 UTC') },
+  { id: 8398, timestamp: dateToSeconds('2022 03 23 00:00:00 UTC') },
+  { id: 3101, timestamp: dateToSeconds('2022 03 26 00:00:00 UTC') },
+  { id: 467, timestamp: dateToSeconds('2022 03 29 00:00:00 UTC') },
+  { id: 8232, timestamp: dateToSeconds('2022 04 01 00:00:00 UTC') },
+  { id: 8378, timestamp: dateToSeconds('2022 04 04 00:00:00 UTC') },
+  { id: 2176, timestamp: dateToSeconds('2022 04 07 00:00:00 UTC') },
+  { id: 3605, timestamp: dateToSeconds('2022 04 10 00:00:00 UTC') },
+  { id: 6200, timestamp: dateToSeconds('2022 04 13 00:00:00 UTC') },
+  { id: 5914, timestamp: dateToSeconds('2022 04 16 00:00:00 UTC') },
+  { id: 2518, timestamp: dateToSeconds('2022 04 19 00:00:00 UTC') },
+  { id: 8699, timestamp: dateToSeconds('2022 04 22 00:00:00 UTC') },
+  { id: 8389, timestamp: dateToSeconds('2022 04 25 00:00:00 UTC') },
+  { id: 999999, timestamp: dateToSeconds('2022 04 30 00:00:00 UTC') },
+]
 
 export const SUBMIT_TX_OVERRIDES = {
   maxFeePerGas: ethers.utils.parseUnits('200', 'gwei'),

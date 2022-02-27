@@ -35,7 +35,7 @@ export class Snapshot {
 
   private getPreviousWinners() {
     let previousWinners: { [address: string]: number } = {}
-    const minPrevWinners = Math.ceil((this.timestamp - FIRST_LOTTERY_TIMESTAMP) / DAY_IN_SECONDS / 3)
+    const minPrevWinners = AWARDS_LIST.findIndex(({ timestamp }) => timestamp == this.timestamp)
     const requiredAwards = AWARDS_LIST.slice(0, minPrevWinners)
     if (minPrevWinners == 0) previousWinners = {}
     else if (!existsSync(WINNERS_PATH))
@@ -58,6 +58,7 @@ export class Snapshot {
             .map((e) => e.timestamp)}`
         )
     }
+    console.log(`Got previous winners from ${WINNERS_PATH}: ${Object.keys(previousWinners)}`)
     return previousWinners
   }
 
@@ -102,11 +103,21 @@ export class Snapshot {
   }
 
   private logBreakdown(allocationWithBreakdown: AllocationWithBreakdown) {
-    const critertia = Object.keys(Object.values(allocationWithBreakdown)[0]).sort()
+    const critertia = [
+      'total',
+      'trading',
+      'closedTrade',
+      'fodl-eth-lp',
+      'fodl-usdc-lp',
+      'fodl-matic-lp',
+      'xFodl',
+      'boatlifters',
+      'socialmedia',
+    ]
     console.log(`owner | ${critertia.join(' | ')}`)
     console.log(
       Object.entries(allocationWithBreakdown)
-        .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c]).join(' | ')}`)
+        .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c] || 0).join(' | ')}`)
         .join('\n')
     )
   }

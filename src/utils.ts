@@ -142,4 +142,6 @@ export const getBlockBefore = async (target: number, provider: providers.Provide
 
 // Date from timestamp or last midnight
 export const getTimestampOrMidnight = (timestamp: string | undefined) =>
-  Math.floor(new Date(timestamp || new Date().toDateString()).getTime() / 1000)
+  dateToSeconds(timestamp || new Date().toDateString())
+
+export const dateToSeconds = (dateTime: string) => Math.floor(new Date(dateTime).getTime() / 1000)
