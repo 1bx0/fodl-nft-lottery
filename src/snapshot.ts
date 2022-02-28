@@ -66,7 +66,6 @@ export class Snapshot {
             .map((e) => e.timestamp)}`
         )
     }
-    console.log(`Got previous winners from ${WINNERS_PATH}: ${previousWinners}`)
     return previousWinners
   }
 

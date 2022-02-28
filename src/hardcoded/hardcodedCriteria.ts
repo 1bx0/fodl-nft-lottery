@@ -71,9 +71,8 @@ abstract class SCHardcodedJsonUrlCriteria extends HardcodedListCriteria {
     const arweaveUrl: string = await this.sc.callStatic.arweaveUrl({
       blockTag: this.snapshotBlock > this.deploymentBlock ? this.snapshotBlock : this.deploymentBlock + 1,
     })
-    const response = await axios.get(arweaveUrl)
-    const rawMembers = response.data.replace(/'/g, '"')
-    const members: string[] = JSON.parse(rawMembers)
+    const res = await axios.get(arweaveUrl)
+    const members = typeof res.data === 'string' ? JSON.parse(res.data.replace(/'/g, '"')) : res.data
     return Object.fromEntries(members.map((a: string) => [a.toLowerCase(), BigNumber.from(this.tickets)]))
   }
 }
