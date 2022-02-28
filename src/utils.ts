@@ -13,6 +13,27 @@ export type Transfer = {
   amount: BigNumber
 }
 
+export const logBreakdown = (allocationWithBreakdown: AllocationWithBreakdown) => {
+  const critertia = [
+    'total',
+    'trading',
+    'closedTrade',
+    'fodl-eth-lp',
+    'fodl-usdc-lp',
+    'fodl-matic-lp',
+    'xFodl',
+    'boatlifters',
+    'socialmedia',
+    'members',
+  ]
+  console.log(`owner | ${critertia.join(' | ')}`)
+  console.log(
+    Object.entries(allocationWithBreakdown)
+      .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c] || 0).join(' | ')}`)
+      .join('\n')
+  )
+}
+
 export const convertAllocation = (input: Allocation, applyFn: (value: BigNumber) => BigNumber) =>
   Object.fromEntries(Object.entries(input).map(([key, val]) => [key, applyFn(val)]))
 
