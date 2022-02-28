@@ -1,11 +1,18 @@
 import { BigNumber, providers } from 'ethers'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { AWARDS_LIST, DAY_IN_SECONDS, EXCLUDE_LIST, FIRST_LOTTERY_TIMESTAMP, WINNERS_PATH } from './constants'
+import { AWARDS_LIST, EXCLUDE_LIST, WINNERS_PATH } from './constants'
 import { Criteria } from './criteria'
-import { BoatliftersCriteria, SocialMediaCriteria } from './hardcoded/hardcodedCriteria'
+import { BoatliftersCriteria, MembersCriteria, SocialMediaCriteria } from './hardcoded/hardcodedCriteria'
 import { StakingCriteria } from './staking/stakingCriteria'
 import { TradingCriteria } from './trading/tradingCriteria'
-import { Allocation, AllocationWithBreakdown, filterAllocation, NamedAllocations, sumAllocations } from './utils'
+import {
+  Allocation,
+  AllocationWithBreakdown,
+  filterAllocation,
+  logBreakdown,
+  NamedAllocations,
+  sumAllocations,
+} from './utils'
 
 export class Snapshot {
   constructor(
@@ -27,6 +34,7 @@ export class Snapshot {
       new StakingCriteria(ethProvider, ethereumSnapshotBlock, maticProvider, maticSnapshotBlock),
       new BoatliftersCriteria(ethProvider, ethereumSnapshotBlock),
       new SocialMediaCriteria(ethProvider, ethereumSnapshotBlock),
+      new MembersCriteria(ethProvider, ethereumSnapshotBlock),
     ]
   }
 
@@ -80,7 +88,7 @@ export class Snapshot {
       const eligible = (k: string, v: BigNumber) => !v.isZero() && !exclude.has(k)
       tickets = filterAllocation(sumAllocations(...Object.values(allAllocations)), eligible)
       allocationBreakdown = this.computeAllocationBreakdown(tickets, allAllocations)
-      this.logBreakdown(allocationBreakdown)
+      logBreakdown(allocationBreakdown)
       this.storeAllocationBreakdown(allocationBreakdown, this.fileName)
     }
     return { tickets, allocationBreakdown }
@@ -99,26 +107,6 @@ export class Snapshot {
           ),
         },
       ])
-    )
-  }
-
-  private logBreakdown(allocationWithBreakdown: AllocationWithBreakdown) {
-    const critertia = [
-      'total',
-      'trading',
-      'closedTrade',
-      'fodl-eth-lp',
-      'fodl-usdc-lp',
-      'fodl-matic-lp',
-      'xFodl',
-      'boatlifters',
-      'socialmedia',
-    ]
-    console.log(`owner | ${critertia.join(' | ')}`)
-    console.log(
-      Object.entries(allocationWithBreakdown)
-        .map(([owner, breakdown]) => `${owner} | ${critertia.map((c) => breakdown[c] || 0).join(' | ')}`)
-        .join('\n')
     )
   }
 

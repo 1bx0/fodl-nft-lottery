@@ -2314,6 +2314,51 @@ export const SOCIALMEDIA_CONTRACT_ADDRESS = '0x437f7add2974487dD188C7fb378199366
 export const SOCIALMEDIA_CONTRACT_DEPLOYMENT_BLOCK = 14233806
 export const TICKETS_FOR_SOCIALMEDIA = 100
 
+export const MEMBERS_CONTRACT_ADDRESS = '0x262D626247Fd93C7d1cd548D8bc262633C1d93D9'
+export const JSON_LIST_URL_ABI = [
+  { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'address', name: 'previousOwner', type: 'address' },
+      { indexed: true, internalType: 'address', name: 'newOwner', type: 'address' },
+    ],
+    name: 'OwnershipTransferred',
+    type: 'event',
+  },
+  {
+    inputs: [],
+    name: 'arweaveUrl',
+    outputs: [{ internalType: 'string', name: '', type: 'string' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  { inputs: [], name: 'renounceOwnership', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  {
+    inputs: [{ internalType: 'string', name: 'url', type: 'string' }],
+    name: 'set',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'newOwner', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+]
+export const MEMBERS_CONTRACT_DEPLOYMENT_BLOCK = 14296879
+export const TICKETS_FOR_MEMBER = 20
+
 export const EXCLUDE_LIST = [
   constants.AddressZero,
   LP_USDC_FODL_STAKING_ADDRESS,
