@@ -52,17 +52,19 @@ export class Snapshot {
         `Please run lotteries for timestamps: ${requiredAwards.map((e) => e.timestamp)}`
       )
     else {
-      previousWinners = JSON.parse(readFileSync(WINNERS_PATH, 'utf-8'))
-      const winners = Object.entries(previousWinners).filter(
-        ([_, award]) => AWARDS_LIST.find((e) => e.id == award)!.timestamp < this.timestamp
-      )
-      if (winners.length < minPrevWinners)
+      previousWinners = Object.fromEntries(
+        Object.entries(JSON.parse(readFileSync(WINNERS_PATH, 'utf-8'))).filter(
+          ([_, award]) => AWARDS_LIST.find((e) => e.id == award)!.timestamp < this.timestamp
+        )
+      ) as { [address: string]: number }
+
+      if (previousWinners.length < minPrevWinners)
         throw (
           `For this timestamp: ${this.timestamp}, file ${WINNERS_PATH} must contain ` +
           `winners for awards: ${requiredAwards.map((e) => e.id)}.\n` +
           `However, only ${JSON.stringify(previousWinners)} was found.\n` +
           `Please run lotteries for timestamps: ${requiredAwards
-            .filter((a) => winners.findIndex(([w, award]) => a.id == award) != -1)
+            .filter((a) => Object.entries(previousWinners).findIndex(([_, award]) => a.id == award) != -1)
             .map((e) => e.timestamp)}`
         )
     }
