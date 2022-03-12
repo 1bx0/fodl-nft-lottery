@@ -139,25 +139,24 @@ export const computeAllocationBreakdown = (totals: Allocation, as: NamedAllocati
   )
 
 export const getBlockBefore = async (target: number, provider: providers.Provider) => {
-  const averageBlockTime = (await provider.getNetwork()).name == 'matic' ? 2 : 15
-
   const getBlockDiff = async (block: Block, diff: number) => {
     // console.log(new Date(block.timestamp * 1000), block.number, diff)
     return await provider.getBlock(block.number - diff)
   }
 
-  let block = await provider.getBlock('latest')
+  let [block, prevBlock] = await Promise.all([provider.getBlock('latest'), provider.getBlock(0)])
   let minDiff = Number.MAX_VALUE
   while (Math.abs(target - block.timestamp) < minDiff) {
     minDiff = Math.abs(target - block.timestamp)
-    let diff = (block.timestamp - target) / averageBlockTime
-    diff = diff > 0 ? Math.ceil(diff) : Math.floor(diff)
+    let blockTime = (block.timestamp - prevBlock.timestamp) / (block.number - prevBlock.number)
+    let diff = (block.timestamp - target) / blockTime
+    diff = Math.sign(diff) * Math.ceil(Math.abs(diff))
+    prevBlock = block
     block = await getBlockDiff(block, diff)
   }
   while (target < block.timestamp) block = await getBlockDiff(block, 1)
   while (target > block.timestamp) block = await getBlockDiff(block, -1)
 
-  // console.log('found', new Date(block.timestamp * 1000), block.number)
   return block.number
 }
 
