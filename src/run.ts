@@ -3,7 +3,7 @@ import dotenv from 'dotenv'
 import { BigNumber, ethers } from 'ethers'
 import { Lottery } from './lottery'
 import { Snapshot } from './snapshot'
-import { AllocationWithBreakdown, getBlockBefore, getTimestampOrMidnight } from './utils'
+import { AllocationWithBreakdown, getBlockAfter, getTimestampOrMidnight } from './utils'
 
 dotenv.config()
 
@@ -16,8 +16,8 @@ const timestamp = getTimestampOrMidnight(process.env.TIMESTAMP)
 
 export async function run() {
   const [ethereumSnapshotBlock, maticSnapshotBlock] = await Promise.all([
-    getBlockBefore(timestamp, ethProvider),
-    getBlockBefore(timestamp, maticProvider),
+    getBlockAfter(timestamp, ethProvider),
+    getBlockAfter(timestamp, maticProvider),
   ])
   const snapshot = new Snapshot(timestamp, ethProvider, ethereumSnapshotBlock, maticProvider, maticSnapshotBlock)
   const lottery = new Lottery(timestamp, ethProvider, ethereumSnapshotBlock)
