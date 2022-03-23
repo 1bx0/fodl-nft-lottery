@@ -9,42 +9,38 @@ export const AAVE_ADDRESS = '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'
 export const WBTC_ADDRESS = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
 export const BTC_ADDRESS = '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'
 export const USD_ADDRESS = '0x0000000000000000000000000000000000000348'
+export const XVS_ADDRESS = '0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63'
+
+export const REWARD_TOKENS = [COMP_ADDRESS, STK_AAVE_ADDRESS, XVS_ADDRESS]
 
 export const TAX_ADDRESS = '0xff6062aac9a6367ce2f02c826c544a130babcf32'
-export const CHAIN_LINK_FEED_ADDRESS = '0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf'
 export const CHAIN_LINK_FEED_ABI = [
   {
+    inputs: [
+      { internalType: 'address', name: '_aggregator', type: 'address' },
+      { internalType: 'address', name: '_accessController', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'constructor',
+  },
+  {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: 'address', name: 'accessController', type: 'address' },
-      { indexed: true, internalType: 'address', name: 'sender', type: 'address' },
+      { indexed: true, internalType: 'int256', name: 'current', type: 'int256' },
+      { indexed: true, internalType: 'uint256', name: 'roundId', type: 'uint256' },
+      { indexed: false, internalType: 'uint256', name: 'updatedAt', type: 'uint256' },
     ],
-    name: 'AccessControllerSet',
+    name: 'AnswerUpdated',
     type: 'event',
   },
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: 'address', name: 'asset', type: 'address' },
-      { indexed: true, internalType: 'address', name: 'denomination', type: 'address' },
-      { indexed: true, internalType: 'address', name: 'latestAggregator', type: 'address' },
-      { indexed: false, internalType: 'address', name: 'previousAggregator', type: 'address' },
-      { indexed: false, internalType: 'uint16', name: 'nextPhaseId', type: 'uint16' },
-      { indexed: false, internalType: 'address', name: 'sender', type: 'address' },
+      { indexed: true, internalType: 'uint256', name: 'roundId', type: 'uint256' },
+      { indexed: true, internalType: 'address', name: 'startedBy', type: 'address' },
+      { indexed: false, internalType: 'uint256', name: 'startedAt', type: 'uint256' },
     ],
-    name: 'FeedConfirmed',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: 'address', name: 'asset', type: 'address' },
-      { indexed: true, internalType: 'address', name: 'denomination', type: 'address' },
-      { indexed: true, internalType: 'address', name: 'proposedAggregator', type: 'address' },
-      { indexed: false, internalType: 'address', name: 'currentAggregator', type: 'address' },
-      { indexed: false, internalType: 'address', name: 'sender', type: 'address' },
-    ],
-    name: 'FeedProposed',
+    name: 'NewRound',
     type: 'event',
   },
   {
@@ -67,159 +63,49 @@ export const CHAIN_LINK_FEED_ABI = [
   },
   { inputs: [], name: 'acceptOwnership', outputs: [], stateMutability: 'nonpayable', type: 'function' },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'address', name: 'aggregator', type: 'address' },
-    ],
-    name: 'confirmFeed',
+    inputs: [],
+    name: 'accessController',
+    outputs: [{ internalType: 'contract AccessControllerInterface', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'aggregator',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '_aggregator', type: 'address' }],
+    name: 'confirmAggregator',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
+    inputs: [],
     name: 'decimals',
     outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
+    inputs: [],
     name: 'description',
     outputs: [{ internalType: 'string', name: '', type: 'string' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [],
-    name: 'getAccessController',
-    outputs: [{ internalType: 'contract AccessControllerInterface', name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint256', name: 'roundId', type: 'uint256' },
-    ],
+    inputs: [{ internalType: 'uint256', name: '_roundId', type: 'uint256' }],
     name: 'getAnswer',
-    outputs: [{ internalType: 'int256', name: 'answer', type: 'int256' }],
+    outputs: [{ internalType: 'int256', name: '', type: 'int256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
-    name: 'getCurrentPhaseId',
-    outputs: [{ internalType: 'uint16', name: 'currentPhaseId', type: 'uint16' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
-    name: 'getFeed',
-    outputs: [{ internalType: 'contract AggregatorV2V3Interface', name: 'aggregator', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint80', name: 'roundId', type: 'uint80' },
-    ],
-    name: 'getNextRoundId',
-    outputs: [{ internalType: 'uint80', name: 'nextRoundId', type: 'uint80' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint16', name: 'phaseId', type: 'uint16' },
-    ],
-    name: 'getPhase',
-    outputs: [
-      {
-        components: [
-          { internalType: 'uint16', name: 'phaseId', type: 'uint16' },
-          { internalType: 'uint80', name: 'startingAggregatorRoundId', type: 'uint80' },
-          { internalType: 'uint80', name: 'endingAggregatorRoundId', type: 'uint80' },
-        ],
-        internalType: 'struct FeedRegistryInterface.Phase',
-        name: 'phase',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint16', name: 'phaseId', type: 'uint16' },
-    ],
-    name: 'getPhaseFeed',
-    outputs: [{ internalType: 'contract AggregatorV2V3Interface', name: 'aggregator', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint16', name: 'phaseId', type: 'uint16' },
-    ],
-    name: 'getPhaseRange',
-    outputs: [
-      { internalType: 'uint80', name: 'startingRoundId', type: 'uint80' },
-      { internalType: 'uint80', name: 'endingRoundId', type: 'uint80' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint80', name: 'roundId', type: 'uint80' },
-    ],
-    name: 'getPreviousRoundId',
-    outputs: [{ internalType: 'uint80', name: 'previousRoundId', type: 'uint80' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
-    name: 'getProposedFeed',
-    outputs: [{ internalType: 'contract AggregatorV2V3Interface', name: 'proposedAggregator', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint80', name: '_roundId', type: 'uint80' },
-    ],
+    inputs: [{ internalType: 'uint80', name: '_roundId', type: 'uint80' }],
     name: 'getRoundData',
     outputs: [
       { internalType: 'uint80', name: 'roundId', type: 'uint80' },
@@ -232,59 +118,28 @@ export const CHAIN_LINK_FEED_ABI = [
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint80', name: 'roundId', type: 'uint80' },
-    ],
-    name: 'getRoundFeed',
-    outputs: [{ internalType: 'contract AggregatorV2V3Interface', name: 'aggregator', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint256', name: 'roundId', type: 'uint256' },
-    ],
+    inputs: [{ internalType: 'uint256', name: '_roundId', type: 'uint256' }],
     name: 'getTimestamp',
-    outputs: [{ internalType: 'uint256', name: 'timestamp', type: 'uint256' }],
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'address', name: 'aggregator', type: 'address' }],
-    name: 'isFeedEnabled',
-    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
+    inputs: [],
     name: 'latestAnswer',
-    outputs: [{ internalType: 'int256', name: 'answer', type: 'int256' }],
+    outputs: [{ internalType: 'int256', name: '', type: 'int256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
+    inputs: [],
     name: 'latestRound',
-    outputs: [{ internalType: 'uint256', name: 'roundId', type: 'uint256' }],
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
+    inputs: [],
     name: 'latestRoundData',
     outputs: [
       { internalType: 'uint80', name: 'roundId', type: 'uint80' },
@@ -297,12 +152,9 @@ export const CHAIN_LINK_FEED_ABI = [
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
+    inputs: [],
     name: 'latestTimestamp',
-    outputs: [{ internalType: 'uint256', name: 'timestamp', type: 'uint256' }],
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -314,25 +166,38 @@ export const CHAIN_LINK_FEED_ABI = [
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'address', name: 'aggregator', type: 'address' },
-    ],
-    name: 'proposeFeed',
+    inputs: [{ internalType: 'uint16', name: '', type: 'uint16' }],
+    name: 'phaseAggregators',
+    outputs: [{ internalType: 'contract AggregatorV2V3Interface', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'phaseId',
+    outputs: [{ internalType: 'uint16', name: '', type: 'uint16' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '_aggregator', type: 'address' }],
+    name: 'proposeAggregator',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-      { internalType: 'uint80', name: 'roundId', type: 'uint80' },
-    ],
+    inputs: [],
+    name: 'proposedAggregator',
+    outputs: [{ internalType: 'contract AggregatorV2V3Interface', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint80', name: '_roundId', type: 'uint80' }],
     name: 'proposedGetRoundData',
     outputs: [
-      { internalType: 'uint80', name: 'id', type: 'uint80' },
+      { internalType: 'uint80', name: 'roundId', type: 'uint80' },
       { internalType: 'int256', name: 'answer', type: 'int256' },
       { internalType: 'uint256', name: 'startedAt', type: 'uint256' },
       { internalType: 'uint256', name: 'updatedAt', type: 'uint256' },
@@ -342,13 +207,10 @@ export const CHAIN_LINK_FEED_ABI = [
     type: 'function',
   },
   {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
+    inputs: [],
     name: 'proposedLatestRoundData',
     outputs: [
-      { internalType: 'uint80', name: 'id', type: 'uint80' },
+      { internalType: 'uint80', name: 'roundId', type: 'uint80' },
       { internalType: 'int256', name: 'answer', type: 'int256' },
       { internalType: 'uint256', name: 'startedAt', type: 'uint256' },
       { internalType: 'uint256', name: 'updatedAt', type: 'uint256' },
@@ -358,14 +220,14 @@ export const CHAIN_LINK_FEED_ABI = [
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'contract AccessControllerInterface', name: '_accessController', type: 'address' }],
-    name: 'setAccessController',
+    inputs: [{ internalType: 'address', name: '_accessController', type: 'address' }],
+    name: 'setController',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'address', name: 'to', type: 'address' }],
+    inputs: [{ internalType: 'address', name: '_to', type: 'address' }],
     name: 'transferOwnership',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -373,16 +235,6 @@ export const CHAIN_LINK_FEED_ABI = [
   },
   {
     inputs: [],
-    name: 'typeAndVersion',
-    outputs: [{ internalType: 'string', name: '', type: 'string' }],
-    stateMutability: 'pure',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'base', type: 'address' },
-      { internalType: 'address', name: 'quote', type: 'address' },
-    ],
     name: 'version',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
@@ -390,6 +242,10 @@ export const CHAIN_LINK_FEED_ABI = [
   },
 ]
 
+export const BNB_FODL_REGISTRY_ADDRESS = '0x92e782BaDab8D21dde8CC2aaE06e5cEB61d23139'
+export const BNB_REGISTRY_DEPLOYMENT_BLOCK = 15333140
+export const MATIC_FODL_REGISTRY_ADDRESS = '0x32C7FC15fd574a40Fbec5a50B185A0CC46906C26'
+export const MATIC_REGISTRY_DEPLOYMENT_BLOCK = 25804457
 export const FODL_REGISTRY_ADDRESS = '0xec6b351778aaa2349a8726b4837e05232ef20d03'
 export const REGISTRY_DEPLOYMENT_BLOCK = 13373735
 export const FODL_REGISTRY_ABI = [

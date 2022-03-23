@@ -1,29 +1,26 @@
 import { BigNumber, Contract, ethers, providers } from 'ethers'
 import { hexZeroPad } from 'ethers/lib/utils'
 import {
-  AAVE_ADDRESS,
-  BTC_ADDRESS,
   CHAIN_LINK_FEED_ABI,
-  CHAIN_LINK_FEED_ADDRESS,
   CLOSED_TRADE_BONUS,
   CLOSED_TRADE_MIN_CONTRIBUTION,
-  COMP_ADDRESS,
   ERC20_ABI,
-  ETH_ADDRESS,
   EVENTS_CHUNK_SIZE,
   FODL_REGISTRY_ABI,
-  FODL_REGISTRY_ADDRESS,
   REGISTRY_DEPLOYMENT_BLOCK,
-  STK_AAVE_ADDRESS,
+  REWARD_TOKENS,
   TAX_ADDRESS,
   TRANSFER_EVENT_HASH,
-  USD_ADDRESS,
   USD_DECIMALS,
-  WBTC_ADDRESS,
-  WETH_ADDRESS,
 } from '../constants'
 import { Criteria } from '../criteria'
 import { NamedAllocations, parseAddress } from '../utils'
+
+export type Chain = {
+  provider: providers.Provider
+  fodlRegistryAddress: string
+  priceFeeds: { [symbol: string]: string }
+}
 
 /*
  * This rule allocates tickets based on USD contributed to the tax wallet. 1 USD = 1 ticket.
@@ -32,15 +29,14 @@ import { NamedAllocations, parseAddress } from '../utils'
  * splitting his position into a closed one and one that remains open.
  */
 export class TradingCriteria extends Criteria {
-  constructor(private provider: providers.Provider, snapshotBlock: number) {
+  constructor(private chain: Chain, snapshotBlock: number) {
     super(snapshotBlock)
-    this.priceFeed = new ethers.Contract(CHAIN_LINK_FEED_ADDRESS, CHAIN_LINK_FEED_ABI, this.provider)
-    this.registry = new ethers.Contract(FODL_REGISTRY_ADDRESS, FODL_REGISTRY_ABI, this.provider)
+    this.registry = new Contract(this.chain.fodlRegistryAddress, FODL_REGISTRY_ABI, this.chain.provider)
   }
 
-  public allocations: NamedAllocations = { trading: {}, closedTrade: {} }
+  public allocations: NamedAllocations = {}
+  public networkName: string = ''
 
-  private priceFeed: Contract
   private registry: Contract
 
   private ownersCache: { [ownerAtBlock: string]: string } = {}
@@ -64,10 +60,12 @@ export class TradingCriteria extends Criteria {
 
   private async getPrice(token: string, blockNumber: number) {
     const key = `${blockNumber}|${token.toLowerCase()}`
-    if (!this.pricesCache[key])
-      this.pricesCache[key] = await this.priceFeed.callStatic.latestAnswer(token, USD_ADDRESS, {
-        blockTag: blockNumber,
-      })
+    if (!this.pricesCache[key]) {
+      const sym = await new Contract(token, ERC20_ABI, this.chain.provider).callStatic.symbol()
+      if (!this.chain.priceFeeds[sym]) throw new Error('Token symbol not in chainlink pricefeed map!')
+      const feed = new Contract(this.chain.priceFeeds[sym], CHAIN_LINK_FEED_ABI, this.chain.provider)
+      this.pricesCache[key] = await feed.callStatic.latestAnswer({ blockTag: blockNumber })
+    }
 
     return this.pricesCache[key]
   }
@@ -75,25 +73,21 @@ export class TradingCriteria extends Criteria {
   private async getDecimals(token: string) {
     const key = token.toLowerCase()
     if (!this.decimalsCache[key])
-      this.decimalsCache[key] = await new Contract(token, ERC20_ABI, this.provider).callStatic.decimals()
+      this.decimalsCache[key] = await new Contract(token, ERC20_ABI, this.chain.provider).callStatic.decimals()
 
     return this.decimalsCache[key]
   }
 
-  private getToken(address: string) {
-    if (address.toLowerCase() == WETH_ADDRESS.toLowerCase()) return ETH_ADDRESS.toLowerCase()
-    if (address.toLowerCase() == WBTC_ADDRESS.toLowerCase()) return BTC_ADDRESS.toLowerCase()
-    if (address.toLowerCase() == STK_AAVE_ADDRESS.toLowerCase()) return AAVE_ADDRESS.toLowerCase()
-    return address
-  }
-
   private tokenNotReward(token: string) {
-    return token.toLowerCase() != COMP_ADDRESS.toLowerCase() && token.toLowerCase() != AAVE_ADDRESS.toLowerCase()
+    return REWARD_TOKENS.find((address) => address.toLowerCase() == token.toLowerCase()) == undefined
   }
 
   public async countTickets() {
-    console.log('Trading Criteria...')
-    const tag = `tax-contributions`
+    this.networkName = (await this.chain.provider.getNetwork()).name
+    this.allocations[`${this.networkName}-closedTrade`] = {}
+    this.allocations[`${this.networkName}-trading`] = {}
+    console.log(`${this.networkName} Trading Criteria...`)
+    const tag = `${this.networkName} tax-contributions`
     console.time(tag)
     for (let fromBlock = REGISTRY_DEPLOYMENT_BLOCK; fromBlock <= this.snapshotBlock; fromBlock += EVENTS_CHUNK_SIZE) {
       this.clearCaches()
@@ -103,21 +97,20 @@ export class TradingCriteria extends Criteria {
   }
 
   private async processLogs(fromBlock: number, toBlock: number) {
-    const logs = await this.provider.getLogs({
+    const logs = await this.chain.provider.getLogs({
       fromBlock,
       toBlock,
       topics: [TRANSFER_EVENT_HASH, null, hexZeroPad(TAX_ADDRESS, 32)],
     })
-
     const contributions = (await Promise.all(logs.map((log) => this.processTransfer(log)))).filter((e) => e != null)
     contributions.forEach((contribution) => {
       if (contribution == null) return
-      this.allocations.trading[contribution.owner] = contribution.dollarsContributed.add(
-        this.allocations.trading[contribution.owner] || BigNumber.from(0)
+      this.allocations[`${this.networkName}-trading`][contribution.owner] = contribution.dollarsContributed.add(
+        this.allocations[`${this.networkName}-trading`][contribution.owner] || BigNumber.from(0)
       )
 
-      this.allocations.closedTrade[contribution.owner] = contribution.closedTradeBonus.add(
-        this.allocations.closedTrade[contribution.owner] || BigNumber.from(0)
+      this.allocations[`${this.networkName}-closedTrade`][contribution.owner] = contribution.closedTradeBonus.add(
+        this.allocations[`${this.networkName}-closedTrade`][contribution.owner] || BigNumber.from(0)
       )
     })
   }
@@ -125,7 +118,7 @@ export class TradingCriteria extends Criteria {
   private async processTransfer(log: ethers.providers.Log) {
     try {
       const blockNumber = log.blockNumber
-      const token = this.getToken(log.address)
+      const token = log.address
       const from = parseAddress(log.topics[1])
       const tokenAmount = BigNumber.from(log.data)
 
@@ -150,7 +143,7 @@ export class TradingCriteria extends Criteria {
         owner,
       }
     } catch (e) {
-      console.error('Error for log:', log, e)
+      console.error(this.networkName, 'The following log should be ignored due to:', log, e)
       return null
     }
   }
