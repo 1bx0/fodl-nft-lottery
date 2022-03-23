@@ -4,7 +4,7 @@ import { AWARDS_LIST, EXCLUDE_LIST, WINNERS_PATH } from './constants'
 import { Criteria } from './criteria'
 import { BoatliftersCriteria, MembersCriteria, SocialMediaCriteria } from './hardcoded/hardcodedCriteria'
 import { StakingCriteria } from './staking/stakingCriteria'
-import { TradingCriteria } from './trading/tradingCriteria'
+import { Chain, TradingCriteria } from './trading/tradingCriteria'
 import {
   Allocation,
   AllocationWithBreakdown,
@@ -17,24 +17,29 @@ import {
 export class Snapshot {
   constructor(
     private timestamp: number,
-    ethProvider: providers.Provider,
+    ethChain: Chain,
     ethereumSnapshotBlock: number,
-    maticProvider: providers.Provider,
-    maticSnapshotBlock: number
+    bnbChain: Chain,
+    bnbSnapshotBlock: number,
+    polygonChain: Chain,
+    polygonSnapshotBlock: number
   ) {
     console.log(
       `Creating snapshot at: ${new Date(timestamp * 1000)} (${timestamp}) \n` +
         `ETH block number: ${ethereumSnapshotBlock} \n` +
-        `MATIC block number: ${maticSnapshotBlock}`
+        `POLYGON block number: ${polygonSnapshotBlock} \n` +
+        `BNB block number: ${bnbSnapshotBlock}`
     )
-    this.fileName = `./data/snapshot_breakdown_${timestamp}_ETH-${ethereumSnapshotBlock}_MATIC-${maticSnapshotBlock}.json`
+    this.fileName = `./data/snapshot_breakdown_${timestamp}_ETH-${ethereumSnapshotBlock}_POLYGON-${polygonSnapshotBlock}_BNB-${bnbSnapshotBlock}.json`
 
     this.rules = [
-      new TradingCriteria(ethProvider, ethereumSnapshotBlock),
-      new StakingCriteria(ethProvider, ethereumSnapshotBlock, maticProvider, maticSnapshotBlock),
-      new BoatliftersCriteria(ethProvider, ethereumSnapshotBlock),
-      new SocialMediaCriteria(ethProvider, ethereumSnapshotBlock),
-      new MembersCriteria(ethProvider, ethereumSnapshotBlock),
+      new TradingCriteria(ethChain, ethereumSnapshotBlock),
+      new TradingCriteria(polygonChain, polygonSnapshotBlock),
+      new TradingCriteria(bnbChain, bnbSnapshotBlock),
+      new StakingCriteria(ethChain.provider, ethereumSnapshotBlock, polygonChain.provider, polygonSnapshotBlock),
+      new BoatliftersCriteria(ethChain.provider, ethereumSnapshotBlock),
+      new SocialMediaCriteria(ethChain.provider, ethereumSnapshotBlock),
+      new MembersCriteria(ethChain.provider, ethereumSnapshotBlock),
     ]
   }
 
