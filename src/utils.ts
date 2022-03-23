@@ -16,8 +16,12 @@ export type Transfer = {
 export const logBreakdown = (allocationWithBreakdown: AllocationWithBreakdown) => {
   const critertia = [
     'total',
-    'trading',
-    'closedTrade',
+    'homestead-trading',
+    'bnb-trading',
+    'matic-trading',
+    'homestead-closedTrade',
+    'bnb-closedTrade',
+    'matic-closedTrade',
     'fodl-eth-lp',
     'fodl-usdc-lp',
     'fodl-matic-lp',
@@ -80,7 +84,7 @@ export const getHistoricHolders = async (token: Contract, fromBlock: number, toB
   const holders: Set<string> = new Set<string>()
   const erc20 = new ethers.Contract(token.address, ERC20_ABI, token.provider)
 
-  const tag = `holders-${token.address}`
+  const tag = `${(await token.provider.getNetwork()).name} holders-${token.address}`
   console.time(tag)
   for (let i = fromBlock; i <= toBlock; i += EVENTS_CHUNK_SIZE) {
     const logs = await erc20.queryFilter(erc20.filters.Transfer(), i, Math.min(i + EVENTS_CHUNK_SIZE, toBlock))
@@ -97,11 +101,23 @@ export const getBalances = async (token: Contract, addresses: Set<string>, atBlo
   const addrs = [...addresses]
   const erc20 = new ethers.Contract(token.address, ERC20_ABI, token.provider)
 
-  const tag = `balances-${erc20.address}`
-  console.time(tag)
-  const balances = await Promise.all(addrs.map((address) => erc20.balanceOf(address, { blockTag: atBlock })))
-  console.timeEnd(tag)
-  return Object.fromEntries(addrs.map((a, i) => [a, balances[i]]))
+  const tag = `${(await token.provider.getNetwork()).name} balances-${erc20.address}`
+  try {
+    console.time(tag)
+    const balances = await Promise.all(
+      addrs.map(async (address) => {
+        try {
+          return await erc20.callStatic.balanceOf(address, { blockTag: atBlock })
+        } catch (e) {
+          console.log(e)
+        }
+      })
+    )
+    console.timeEnd(tag)
+    return Object.fromEntries(addrs.map((a, i) => [a, balances[i]]))
+  } catch (e) {
+    return getBalances(token, addresses, atBlock)
+  }
 }
 
 export const getMinimumBalancesDuringLastDay = (balances: Allocation, unsortedTransfers: Transfer[]): Allocation => {
@@ -140,7 +156,7 @@ export const computeAllocationBreakdown = (totals: Allocation, as: NamedAllocati
 
 export const getBlockAfter = async (target: number, provider: providers.Provider) => {
   const getBlockDiff = async (block: Block, diff: number) => {
-    // console.log(new Date(block.timestamp * 1000), block.number, diff)
+    // console.log((await provider.getNetwork()).name, new Date(block.timestamp * 1000), block.number, diff)
     return await provider.getBlock(block.number - diff)
   }
 
