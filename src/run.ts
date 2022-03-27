@@ -15,7 +15,7 @@ const ethChain = {
   priceFeeds: ETH_PRICE_FEEDS,
 }
 const polygonChain = {
-  provider: new ethers.providers.StaticJsonRpcProvider(process.env.MATIC_RPC_PROVIDER || ''),
+  provider: new ethers.providers.WebSocketProvider(process.env.MATIC_RPC_PROVIDER || ''),
   fodlRegistryAddress: MATIC_FODL_REGISTRY_ADDRESS,
   priceFeeds: MATIC_PRICE_FEEDS,
 }

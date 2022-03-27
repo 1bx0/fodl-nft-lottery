@@ -156,7 +156,7 @@ export const computeAllocationBreakdown = (totals: Allocation, as: NamedAllocati
 
 export const getBlockAfter = async (target: number, provider: providers.Provider) => {
   const getBlockDiff = async (block: Block, diff: number) => {
-    // console.log((await provider.getNetwork()).name, new Date(block.timestamp * 1000), block.number, diff)
+    console.log((await provider.getNetwork()).name, new Date(block.timestamp * 1000), block.number, diff)
     return await provider.getBlock(block.number - diff)
   }
 
