@@ -16,7 +16,7 @@ const ethChain = {
   priceFeeds: ETH_PRICE_FEEDS,
 }
 const polygonChain = {
-  provider: new ethers.providers.StaticJsonRpcProvider(process.env.MATIC_RPC_PROVIDER || ''),
+  provider: new ethers.providers.WebSocketProvider(process.env.MATIC_RPC_PROVIDER || ''),
   fodlRegistryAddress: MATIC_FODL_REGISTRY_ADDRESS,
   priceFeeds: MATIC_PRICE_FEEDS,
 }
@@ -57,6 +57,7 @@ export async function run() {
   console.log('All done!')
   process.exit(0)
 }
+
 const publishBreakdown = async (timestamp: number, breakdown: AllocationWithBreakdown) => {
   if (!process.env.OPERATOR) return
   console.log(`Publishing allocation to backend!...`)
