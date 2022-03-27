@@ -13,7 +13,7 @@ In .env file:
 ETHEREUM_RPC_PROVIDER=
 
 # Polygon websocket RPC provider for archival node(You can use alchemy to obtain one)
-POLYGON_RPC_PROVIDER=
+MATIC_RPC_PROVIDER=
 
 # Bnb websocket RPC provider for archival node(You can use a publicly available one)
 BNB_RPC_PROVIDER=
