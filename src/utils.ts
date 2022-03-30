@@ -177,7 +177,10 @@ export const getBlockAfter = async (target: number, provider: providers.Provider
 }
 
 // Date from timestamp or last midnight
-export const getTimestampOrMidnight = (timestamp: string | undefined) =>
-  dateToSeconds(timestamp || new Date().toDateString())
+export const getTimestampOrMidnight = (timestamp: string | undefined) => {
+  const d = new Date()
+  d.setUTCHours(0, 0, 0, 0)
+  return dateToSeconds(timestamp || d)
+}
 
-export const dateToSeconds = (dateTime: string) => Math.floor(new Date(dateTime).getTime() / 1000)
+export const dateToSeconds = (dateTime: any) => Math.floor(new Date(dateTime).getTime() / 1000)
