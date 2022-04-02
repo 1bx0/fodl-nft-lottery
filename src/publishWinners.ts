@@ -5,14 +5,14 @@ import { WINNERS_PATH } from './constants'
 
 dotenv.config()
 
+export const API_HEADERS_ETH = { headers: { Authorization: process.env.JWT_ETH! } }
+
 export async function run() {
   const winners = JSON.parse(readFileSync(WINNERS_PATH, 'utf-8'))
   console.log(winners)
   if (!process.env.OPERATOR) return
   console.log(`Publishing winners to backend!...`)
-  await axios.post(`https://api.fodl.finance/nftGiveawayWinners/`, winners, {
-    headers: { 'x-forwarded-for': process.env.OPERATOR || '' },
-  })
+  await axios.post(`https://api1.fodl.finance/ethereum/nftGiveawayWinners/`, winners, API_HEADERS_ETH)
 
   console.log('All done!')
   process.exit(0)

@@ -58,22 +58,22 @@ export async function run() {
   process.exit(0)
 }
 
+export const API_HEADERS_ETH = { headers: { Authorization: process.env.JWT_ETH! } }
+
 const publishBreakdown = async (timestamp: number, breakdown: AllocationWithBreakdown) => {
   if (!process.env.OPERATOR) return
   console.log(`Publishing allocation to backend!...`)
   await axios.post(
-    `https://api.fodl.finance/snapshot/${timestamp}`,
+    `https://api1.fodl.finance/ethereum/snapshot/${timestamp}`,
     JSON.parse(JSON.stringify(breakdown, (_, v) => (v.type! == 'BigNumber' ? BigNumber.from(v.hex).toNumber() : v))),
-    { headers: { 'x-forwarded-for': process.env.OPERATOR || '' } }
+    API_HEADERS_ETH
   )
 }
 
 const publishWinners = async (winners: { [address: string]: number }) => {
   if (!process.env.OPERATOR) return
   console.log(`Publishing winners to backend!...`)
-  await axios.post(`https://api.fodl.finance/nftGiveawayWinners/`, winners, {
-    headers: { 'x-forwarded-for': process.env.OPERATOR || '' },
-  })
+  await axios.post(`https://api1.fodl.finance/ethereum/nftGiveawayWinners/`, winners, API_HEADERS_ETH)
 }
 
 run().catch((e) => {
