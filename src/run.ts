@@ -11,7 +11,7 @@ dotenv.config()
 
 // Mandatory env variables
 const ethChain = {
-  provider: new ethers.providers.WebSocketProvider(process.env.ETHEREUM_RPC_PROVIDER || ''),
+  provider: new ethers.providers.StaticJsonRpcProvider(process.env.ETHEREUM_RPC_PROVIDER || ''),
   fodlRegistryAddress: FODL_REGISTRY_ADDRESS,
   priceFeeds: ETH_PRICE_FEEDS,
 }
