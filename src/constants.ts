@@ -2224,7 +2224,7 @@ export const EXCLUDE_LIST = [
   '0x872c67dd383db7b7e9bc1800546f1ae715a0bc0c', // Team LP Address
   '0xf0c8c8b7cece4a5fb9010db52649e3ef3dc1a3e6', // Team LP Address
   '0xd409cea9dd8db30504168063953ce1fa20748cab', // Opt-out
-  '0x74d1fd2285e1134b30dbcb570a181782586e8e55', // Removed address post facto
+  '0x74d1fd2285e1134b30dbcb570a181782586e8e55', // Removed address post facto (invalid boatlifter)
 ]
 
 export const LOTTERY_VRF_ADDRESS = '0x89e1d5607f813AFaEb9EC6ec3F3b8972D40AB10F'
