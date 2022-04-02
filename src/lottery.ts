@@ -41,18 +41,18 @@ export class Lottery {
       writeFileSync(WINNERS_PATH, JSON.stringify({ ...winners, [winner]: AWARDS_LIST[lotteryNumber].id }), 'utf-8')
     }
 
-    console.log(`!!!!!! The ${lotteryNumber + 1}'th winner for ${this.timestamp} (${date}) is: ${winner}`)
+    console.log(`!!!!!!  ${winner} -> ${AWARDS_LIST[lotteryNumber].id} is the ${lotteryNumber + 1}'th winner ${date}`)
     return { ...winners, [winner]: AWARDS_LIST[lotteryNumber].id }
   }
 
   // Get random seed from chainlink vrf or ask for it and wait
   private async getRandomSeed(): Promise<BigNumber> {
-    let randomSeed: BigNumber = await this.queryRandomSeed()
-    if (!randomSeed.isZero()) return randomSeed
-
-    console.log(`No random seed for timestamp: ${this.timestamp}...`)
-    const requests = await this.getPendingRequests()
-    if (requests.length == 0) await this.requestRandomSeed()
+    if (!process.env.FORCE_REDRAW) {
+      let randomSeed: BigNumber = await this.queryRandomSeed()
+      if (!randomSeed.isZero()) return randomSeed
+      console.log(`No random seed for timestamp: ${this.timestamp}...`)
+    }
+    await this.requestRandomSeed()
     await this.waitForRandomNumber()
     return await this.queryRandomSeed()
   }
@@ -69,10 +69,6 @@ export class Lottery {
     console.log(`Sent transaction to request random seed: ${tx.hash} ...`)
     const receipt = await tx.wait()
     console.log(`Transaction to request random seed confirmed: ${receipt.transactionHash}`)
-  }
-
-  private async getPendingRequests() {
-    return this.vrf.queryFilter(this.vrf.filters.RequestSent(this.timestamp), this.snapshotBlock, 'latest')
   }
 
   private async waitForRandomNumber(): Promise<void> {
